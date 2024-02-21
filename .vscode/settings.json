@@ -1,0 +1,9 @@
+{
+    "rust-analyzer.linkedProjects": [
+        ".\\nfe\\Cargo.toml",
+        ".\\nfe\\Cargo.toml",
+        ".\\nfe\\Cargo.toml",
+        ".\\nfe\\Cargo.toml"
+    ],
+    "rust-analyzer.check.command": "clippy"
+}

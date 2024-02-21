@@ -58,3 +58,6 @@ pub enum TipoProcessoEmissao {
     /// Emissão NF-e pelo contribuinte com aplicativo fornecido pelo Fisco
     ViaAplicativoDoFisco = 3,
 }
+
+
+//TODO  Separar TpFinalidadeEmissao e TpProcessoEmissao em modulos separados

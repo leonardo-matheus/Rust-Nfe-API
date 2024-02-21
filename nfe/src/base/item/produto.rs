@@ -69,7 +69,7 @@ impl<'de> Deserialize<'de> for Produto {
 
         Ok(Self {
             codigo: prod.codigo,
-            gtin: match prod.gtin.to_lowercase().trim() {
+            gtin: match prod.gtin.trim() {
                 "sem gtin" => None,
                 "" => None,
                 _ => Some(prod.gtin),
@@ -92,7 +92,7 @@ impl<'de> Deserialize<'de> for Produto {
                 codigo_beneficio_fiscal: prod.t_codigo_beneficio_fiscal,
                 codigo_excecao_ipi: prod.t_codigo_excecao_ipi,
                 cfop: prod.t_cfop,
-                gtin: match prod.t_gtin.to_lowercase().trim() {
+                gtin: match prod.t_gtin.trim() {
                     "sem gtin" => None,
                     "" => None,
                     _ => Some(prod.t_gtin),
@@ -209,7 +209,7 @@ struct ProdContainer {
 }
 
 impl Produto {
-    // generate a new instance of Produto
+    // new instance
     pub fn new(
         codigo_produto: String,
         codigo_ean: String,
