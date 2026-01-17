@@ -1,0 +1,19 @@
+# Rust build artifacts
+/nfe/target/
+target/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Debug
+*.pdb
+
+# Cargo.lock for libraries (optional)
+# Cargo.lock

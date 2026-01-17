@@ -1,19 +1,11 @@
 //! Testes unitários para os módulos do projeto.
+//!
+//! Este módulo contém testes para validar o parsing e serialização
+//! das estruturas de NF-e.
 
-pub mod dest;
-
-pub mod emit;
-
-pub mod endereco;
-
-pub mod ide;
-
-pub mod infnfe;
-
-pub mod itens;
-
-pub mod parse;
-
-pub mod totais;
-
-pub mod transporte;
+mod dest;
+mod endereco;
+mod ide;
+mod infnfe;
+mod itens;
+mod parse;

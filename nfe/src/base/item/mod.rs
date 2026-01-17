@@ -1,4 +1,7 @@
 //! Detalhamento de produtos e serviços da NF-e
+//!
+//! Este módulo contém as estruturas para representar os itens
+//! (produtos e serviços) da Nota Fiscal Eletrônica.
 
 use super::Error;
 use serde::{Deserialize, Serialize};
@@ -10,15 +13,20 @@ mod produto;
 pub use imposto::*;
 pub use produto::*;
 
-// Itens da Nota Fiscal Eletrônica
+/// Item da Nota Fiscal Eletrônica
+///
+/// Representa um produto ou serviço vendido na nota fiscal,
+/// incluindo dados do produto, quantidade, valores e impostos.
 #[derive(Debug, PartialEq, Deserialize, Serialize, Clone)]
 #[serde(rename = "det")]
-
 pub struct Item {
-    #[serde(rename = "nItem")]
+    /// Número sequencial do item na NF-e
+    #[serde(rename = "@nItem")]
     pub numero: u8,
+    /// Dados do produto ou serviço
     #[serde(rename = "prod")]
     pub produto: Produto,
+    /// Impostos incidentes sobre o produto
     #[serde(rename = "imposto")]
     pub imposto: Imposto,
 }

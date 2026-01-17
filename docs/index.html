@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Rust NFe API - Biblioteca Rust para parsing e serialização de Nota Fiscal Eletrônica brasileira">
+    <meta name="keywords" content="NFe, NFC-e, Rust, XML, Nota Fiscal Eletrônica, Brasil, SEFAZ, parser">
+    <meta name="author" content="Leonardo Matheus">
+    <title>Rust NFe API - Biblioteca para Nota Fiscal Eletrônica</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #f97316;
+            --primary-dark: #ea580c;
+            --secondary: #1e293b;
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --text: #f1f5f9;
+            --text-muted: #94a3b8;
+            --border: #334155;
+            --success: #22c55e;
+            --code-bg: #0d1117;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        /* Header */
+        header {
+            padding: 1.5rem 0;
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 100;
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-decoration: none;
+            color: var(--text);
+            font-weight: 700;
+            font-size: 1.25rem;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.95rem;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+
+        .github-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .github-btn:hover {
+            border-color: var(--primary);
+            background: rgba(249, 115, 22, 0.1);
+        }
+
+        /* Hero Section */
+        .hero {
+            padding: 6rem 0 4rem;
+            text-align: center;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(249, 115, 22, 0.1);
+            border: 1px solid rgba(249, 115, 22, 0.3);
+            border-radius: 50px;
+            font-size: 0.85rem;
+            color: var(--primary);
+            margin-bottom: 1.5rem;
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, var(--text), var(--text-muted));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero h1 span {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            -webkit-background-clip: text;
+            background-clip: text;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            color: var(--text-muted);
+            max-width: 650px;
+            margin: 0 auto 2.5rem;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 0.875rem 2rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: var(--bg-card);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--primary);
+        }
+
+        /* Install Section */
+        .install-section {
+            padding: 2rem 0;
+        }
+
+        .install-box {
+            max-width: 600px;
+            margin: 0 auto;
+            background: var(--code-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .install-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            background: rgba(255, 255, 255, 0.03);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .install-header span {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .copy-btn {
+            padding: 0.35rem 0.75rem;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .copy-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .install-code {
+            padding: 1.25rem 1.5rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.95rem;
+            color: var(--text);
+        }
+
+        /* Features Section */
+        .features {
+            padding: 5rem 0;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 3.5rem;
+        }
+
+        .section-header h2 {
+            font-size: 2.25rem;
+            margin-bottom: 1rem;
+        }
+
+        .section-header p {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            max-width: 550px;
+            margin: 0 auto;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .feature-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+            transition: all 0.3s;
+        }
+
+        .feature-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-4px);
+        }
+
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            background: rgba(249, 115, 22, 0.1);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.25rem;
+            font-size: 1.5rem;
+        }
+
+        .feature-card h3 {
+            font-size: 1.15rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .feature-card p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        /* Code Example Section */
+        .code-section {
+            padding: 5rem 0;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .code-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            align-items: start;
+        }
+
+        @media (max-width: 900px) {
+            .code-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .code-info h2 {
+            font-size: 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .code-info p {
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+            font-size: 1.05rem;
+        }
+
+        .code-info ul {
+            list-style: none;
+            margin-top: 1.5rem;
+        }
+
+        .code-info li {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .code-info li::before {
+            content: "✓";
+            color: var(--success);
+            font-weight: bold;
+        }
+
+        .code-block {
+            background: var(--code-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .code-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1rem;
+            background: rgba(255, 255, 255, 0.03);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .code-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .code-dot.red { background: #ff5f57; }
+        .code-dot.yellow { background: #febc2e; }
+        .code-dot.green { background: #28c840; }
+
+        .code-content {
+            padding: 1.5rem;
+            overflow-x: auto;
+        }
+
+        pre {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            line-height: 1.7;
+        }
+
+        .code-keyword { color: #ff7b72; }
+        .code-type { color: #79c0ff; }
+        .code-string { color: #a5d6ff; }
+        .code-function { color: #d2a8ff; }
+        .code-comment { color: #8b949e; }
+        .code-macro { color: #ffa657; }
+
+        /* Structures Section */
+        .structures {
+            padding: 5rem 0;
+        }
+
+        .struct-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+
+        .struct-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1.25rem;
+        }
+
+        .struct-name {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.95rem;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .struct-desc {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        /* Footer */
+        footer {
+            padding: 3rem 0;
+            border-top: 1px solid var(--border);
+            text-align: center;
+        }
+
+        footer p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        footer a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2.25rem;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .section-header h2 {
+                font-size: 1.75rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <nav>
+                <a href="#" class="logo">
+                    <div class="logo-icon">📄</div>
+                    <span>Rust NFe API</span>
+                </a>
+                <ul class="nav-links">
+                    <li><a href="#features">Funcionalidades</a></li>
+                    <li><a href="#examples">Exemplos</a></li>
+                    <li><a href="#structures">Estruturas</a></li>
+                    <li><a href="https://docs.rs/nfe" target="_blank">Docs</a></li>
+                </ul>
+                <a href="https://github.com/leonardo-matheus/Rust-Nfe-API" class="github-btn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                    </svg>
+                    GitHub
+                </a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero">
+            <div class="container">
+                <div class="hero-badge">
+                    🦀 Escrito em Rust • Rápido e Seguro
+                </div>
+                <h1>Parsing de <span>NF-e</span> simplificado</h1>
+                <p>
+                    Biblioteca Rust de alto desempenho para parsing e serialização de 
+                    Nota Fiscal Eletrônica brasileira. Suporte ao Layout 4.00 da SEFAZ.
+                </p>
+                <div class="hero-buttons">
+                    <a href="https://github.com/leonardo-matheus/Rust-Nfe-API" class="btn btn-primary">
+                        Começar Agora →
+                    </a>
+                    <a href="#examples" class="btn btn-secondary">
+                        Ver Exemplos
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <section class="install-section">
+            <div class="container">
+                <div class="install-box">
+                    <div class="install-header">
+                        <span>Cargo.toml</span>
+                        <button class="copy-btn" onclick="copyToClipboard()">Copiar</button>
+                    </div>
+                    <div class="install-code">
+                        <span style="color: #7ee787;">[dependencies]</span><br>
+                        <span style="color: #79c0ff;">nfe</span> = <span style="color: #a5d6ff;">"0.1.0"</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="features" id="features">
+            <div class="container">
+                <div class="section-header">
+                    <h2>Funcionalidades</h2>
+                    <p>Tudo que você precisa para trabalhar com NF-e em Rust</p>
+                </div>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">⚡</div>
+                        <h3>Alto Desempenho</h3>
+                        <p>Parsing e serialização extremamente rápidos graças ao quick-xml e otimizações do Rust.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🔒</div>
+                        <h3>Type-Safe</h3>
+                        <p>Tipagem forte com enums para todos os campos codificados, prevenindo erros em tempo de compilação.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">📋</div>
+                        <h3>Layout 4.00</h3>
+                        <p>Suporte completo ao layout 4.00 da NF-e conforme especificação da SEFAZ.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🔄</div>
+                        <h3>Serialização</h3>
+                        <p>Converta facilmente entre estruturas Rust e XML válido para transmissão à SEFAZ.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">📦</div>
+                        <h3>Modelos Completos</h3>
+                        <p>Suporte a NF-e (modelo 55) e NFC-e (modelo 65) com todas as estruturas necessárias.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🧪</div>
+                        <h3>Bem Testado</h3>
+                        <p>Cobertura de testes abrangente para garantir a conformidade com o padrão da SEFAZ.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="code-section" id="examples">
+            <div class="container">
+                <div class="code-container">
+                    <div class="code-info">
+                        <h2>Fácil de Usar</h2>
+                        <p>
+                            Parse de XML de NF-e em poucas linhas de código. 
+                            A biblioteca cuida de toda a complexidade do XML para você.
+                        </p>
+                        <p>
+                            Acesse todos os campos da nota fiscal através de structs Rust 
+                            bem tipadas e documentadas.
+                        </p>
+                        <ul>
+                            <li>Parse de arquivos XML</li>
+                            <li>Parse de strings XML</li>
+                            <li>Serialização para XML</li>
+                            <li>Validação automática de tipos</li>
+                            <li>Tratamento de erros robusto</li>
+                        </ul>
+                    </div>
+                    <div class="code-block">
+                        <div class="code-header">
+                            <div class="code-dot red"></div>
+                            <div class="code-dot yellow"></div>
+                            <div class="code-dot green"></div>
+                        </div>
+                        <div class="code-content">
+<pre><span class="code-keyword">use</span> std::fs::File;
+<span class="code-keyword">use</span> std::convert::TryFrom;
+<span class="code-keyword">use</span> nfe::{Nfe, ModeloDocumentoFiscal};
+
+<span class="code-keyword">fn</span> <span class="code-function">main</span>() -> <span class="code-type">Result</span>&lt;(), <span class="code-type">Box</span>&lt;<span class="code-keyword">dyn</span> std::error::Error&gt;&gt; {
+    <span class="code-comment">// Parse de arquivo XML</span>
+    <span class="code-keyword">let</span> file = File::open(<span class="code-string">"nota.xml"</span>)?;
+    <span class="code-keyword">let</span> nfe = Nfe::try_from(file)?;
+    
+    <span class="code-comment">// Acessar dados da nota</span>
+    <span class="code-macro">println!</span>(<span class="code-string">"Chave: {}"</span>, nfe.chave_acesso);
+    <span class="code-macro">println!</span>(<span class="code-string">"Emitente: {:?}"</span>, nfe.emit.razao_social);
+    <span class="code-macro">println!</span>(<span class="code-string">"Total: {}"</span>, nfe.totais.valor_total);
+    
+    <span class="code-comment">// Verificar modelo</span>
+    <span class="code-keyword">match</span> nfe.ide.modelo {
+        ModeloDocumentoFiscal::Nfe => {
+            <span class="code-macro">println!</span>(<span class="code-string">"NF-e modelo 55"</span>);
+        }
+        ModeloDocumentoFiscal::Nfce => {
+            <span class="code-macro">println!</span>(<span class="code-string">"NFC-e modelo 65"</span>);
+        }
+    }
+    
+    <span class="code-type">Ok</span>(())
+}</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="structures" id="structures">
+            <div class="container">
+                <div class="section-header">
+                    <h2>Estruturas Disponíveis</h2>
+                    <p>Todas as estruturas da NF-e mapeadas para Rust</p>
+                </div>
+                <div class="struct-grid">
+                    <div class="struct-card">
+                        <div class="struct-name">Nfe</div>
+                        <div class="struct-desc">Estrutura principal da Nota Fiscal Eletrônica</div>
+                    </div>
+                    <div class="struct-card">
+                        <div class="struct-name">Identificacao</div>
+                        <div class="struct-desc">Dados de identificação da NF-e (ide)</div>
+                    </div>
+                    <div class="struct-card">
+                        <div class="struct-name">Emitente</div>
+                        <div class="struct-desc">Dados do emitente da nota (emit)</div>
+                    </div>
+                    <div class="struct-card">
+                        <div class="struct-name">Destinatario</div>
+                        <div class="struct-desc">Dados do destinatário (dest)</div>
+                    </div>
+                    <div class="struct-card">
+                        <div class="struct-name">Item</div>
+                        <div class="struct-desc">Itens/produtos da nota (det)</div>
+                    </div>
+                    <div class="struct-card">
+                        <div class="struct-name">Produto</div>
+                        <div class="struct-desc">Dados do produto (prod)</div>
+                    </div>
+                    <div class="struct-card">
+                        <div class="struct-name">Imposto</div>
+                        <div class="struct-desc">Impostos do item (ICMS, PIS, COFINS)</div>
+                    </div>
+                    <div class="struct-card">
+                        <div class="struct-name">Totalizacao</div>
+                        <div class="struct-desc">Totais da nota fiscal (total)</div>
+                    </div>
+                    <div class="struct-card">
+                        <div class="struct-name">Transporte</div>
+                        <div class="struct-desc">Dados de transporte (transp)</div>
+                    </div>
+                    <div class="struct-card">
+                        <div class="struct-name">Endereco</div>
+                        <div class="struct-desc">Endereços (emitente/destinatário)</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>
+                MIT License © 2024-2026 • 
+                <a href="https://github.com/leonardo-matheus/Rust-Nfe-API">GitHub</a> • 
+                Feito com 🦀 em Rust
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        function copyToClipboard() {
+            const text = 'nfe = "0.1.0"';
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = document.querySelector('.copy-btn');
+                btn.textContent = 'Copiado!';
+                setTimeout(() => {
+                    btn.textContent = 'Copiar';
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>

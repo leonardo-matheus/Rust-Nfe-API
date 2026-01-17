@@ -1,64 +1,65 @@
-// Grupos COFINS
-use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
+//! COFINS - Contribuição para Financiamento da Seguridade Social
 
-// COFINS
-#[derive(Debug, PartialEq, Clone)]
+use serde::{Deserialize, Serialize};
 
-pub enum GrupoCofins {
-    // Outras Operações
-    CofinsOutr(GrupoCofinsOutr),
-    // Não Tributado
-    CofinsNt(GrupoCofinsNt),
-    // Operação Tributável pela Alíquota Básica
-    CofinsAliq(GrupoCofinsAliq),
+/// Container para os grupos de COFINS
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub struct CofinsContainer {
+    /// COFINS Alíquota - CST 01 e 02
+    #[serde(rename = "COFINSAliq")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cofins_aliq: Option<CofinsAliq>,
+    /// COFINS Não Tributado - CST 04, 05, 06, 07, 08 e 09
+    #[serde(rename = "COFINSNT")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cofins_nt: Option<CofinsNt>,
+    /// COFINS Outras Operações
+    #[serde(rename = "COFINSOutr")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cofins_outr: Option<CofinsOutr>,
 }
 
-impl<'de> Deserialize<'de> for GrupoCofins {
-    fn deserialize<D>(deserializer: D) -> Result<GrupoCofins, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let grc: GrupoCofinsContainer = GrupoCofinsContainer::deserialize(deserializer)?;
-
-        if let Some(gr: GrupoCofinsOutr) = grc.cofins_outr {
-            return Ok(GrupoCofins::CofinsOutr(gr));
-        }
-
-        if let Some(gr: GrupoCofinsNt) = grc.cofins_nt {
-            return Ok(GrupoCofins::CofinsNt(gr));
-        }
-
-        if let Some(gr: GrupoCofinsAliq) = grc.cofins_aliq {
-            return Ok(GrupoCofins::CofinsAliq(gr));
-        }
-
-        Err(D::Error::custom(msg:"Grupo de COFINS não suportado".to_string()))
-    }
+/// COFINS Alíquota - Tributação por alíquota
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub struct CofinsAliq {
+    /// Código de Situação Tributária da COFINS
+    #[serde(rename = "$unflatten=CST")]
+    pub cst: String,
+    /// Valor da Base de Cálculo da COFINS
+    #[serde(rename = "$unflatten=vBC")]
+    pub valor_bc: f32,
+    /// Alíquota da COFINS (em percentual)
+    #[serde(rename = "$unflatten=pCOFINS")]
+    pub aliquota: f32,
+    /// Valor da COFINS
+    #[serde(rename = "$unflatten=vCOFINS")]
+    pub valor: f32,
 }
 
-impl Serialize for GrupoCofins {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let grc = match self {
-            GrupoCofins::CofinsOutr(g) => GrupoCofinsContainer {
-                cofins_outr: Some(g.clone()),
-                cofins_nt: None,
-                cofins_aliq: None,
-            },
-            GrupoCofins::CofinsNt(g) => GrupoCofinsContainer {
-                cofins_outr: None,
-                cofins_nt: Some(g.clone()),
-                cofins_aliq: None,
-            },
-            GrupoCofins::CofinsAliq(g) => GrupoCofinsContainer {
-                cofins_outr: None,
-                cofins_nt: None,
-                cofins_aliq: Some(g.clone()),
-            },
-        };
+/// COFINS Não Tributado
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub struct CofinsNt {
+    /// Código de Situação Tributária da COFINS
+    #[serde(rename = "$unflatten=CST")]
+    pub cst: String,
+}
 
-        grc.serialize(serializer)
-    }
+/// COFINS Outras Operações
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub struct CofinsOutr {
+    /// Código de Situação Tributária da COFINS
+    #[serde(rename = "$unflatten=CST")]
+    pub cst: String,
+    /// Valor da Base de Cálculo da COFINS
+    #[serde(rename = "$unflatten=vBC")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub valor_bc: Option<f32>,
+    /// Alíquota da COFINS (em percentual)
+    #[serde(rename = "$unflatten=pCOFINS")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub aliquota: Option<f32>,
+    /// Valor da COFINS
+    #[serde(rename = "$unflatten=vCOFINS")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub valor: Option<f32>,
 }

@@ -1,47 +1,77 @@
+//! Produto da Nota Fiscal Eletrônica
+
 use super::Error;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_repr::{Deserialize_repr, Serialize_repr};
 use std::str::FromStr;
 
-#[derive(Debug, PartialEq, Serialize)]
+/// Produto da NFe
+///
+/// Contém os dados do produto ou serviço vendido na nota fiscal.
+#[derive(Debug, PartialEq, Clone)]
 pub struct Produto {
-    pub codigo: String,                  // Código do produto
-    pub gtin: Option<String>,            // Código de barras
-    pub descricao: String,               // Descrição do produto
-    pub ncm: String,                     // NCM
-    pub fabricante_cnpj: Option<String>, // CNPJ Fabricante
-    pub tributacao: String,              // Tributação
-    pub unidade: String,                 // Unidade
-    pub quantidade: f32,                 // Quantidade
-    pub valor_unitario: f32,             // Valor unitário
-    pub valor_bruto: f32,                // Valor bruto
-    pub valor_frete: f32,                // Valor frete
-    pub valor_seguro: f32,               // Valor seguro
-    pub desconto: f32,                   // Desconto
-    pub outros: f32,                     // Outras despesas
-    pub valor_compoe_total_nota: bool,   // Valor compõe total da nota
+    /// Código do produto no cadastro do contribuinte
+    pub codigo: String,
+    /// Código GTIN (EAN) do produto
+    pub gtin: Option<String>,
+    /// Descrição do produto ou serviço
+    pub descricao: String,
+    /// Código NCM (Nomenclatura Comum do Mercosul)
+    pub ncm: String,
+    /// CNPJ do fabricante
+    pub fabricante_cnpj: Option<String>,
+    /// Dados da tributação do produto
+    pub tributacao: ProdutoTributacao,
+    /// Unidade comercial
+    pub unidade: String,
+    /// Quantidade comercial
+    pub quantidade: f32,
+    /// Valor unitário comercial
+    pub valor_unitario: f32,
+    /// Valor bruto do produto
+    pub valor_bruto: f32,
+    /// Valor do frete
+    pub valor_frete: Option<f32>,
+    /// Valor do seguro
+    pub valor_seguro: Option<f32>,
+    /// Valor do desconto
+    pub valor_desconto: Option<f32>,
+    /// Outras despesas acessórias
+    pub valor_outros: Option<f32>,
+    /// Indica se o valor do produto compõe o total da NF-e
+    pub valor_compoe_total_nota: bool,
 }
 
-// Dados referentes a tributação do produto
-#[derive(Debug, PartialEq, Serialize)]
+/// Dados referentes a tributação do produto
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct ProdutoTributacao {
-    pub cest: Option<String>,                    // CEST
-    pub escala_relevante: Option<String>,        // Escala relevante
-    pub codigo_beneficio_fiscal: Option<String>, // Código de benefício fiscal
-    pub codigo_excecao_ipi: Option<String>,      // Código de exceção do IPI
-    pub cfop: String,                            // CFOP
-    pub gtin: Option<String>,                    // Código de barras
-    pub unidade: String,                         // Unidade
-    pub quantidade: f32,                         // Quantidade
-    pub valor_unitario: f32,                     // Valor unitário
+    /// CEST - Código Especificador da Substituição Tributária
+    pub cest: Option<String>,
+    /// Indicador de Escala Relevante
+    pub escala_relevante: Option<EscalaRelevante>,
+    /// Código de Benefício Fiscal
+    pub codigo_beneficio_fiscal: Option<String>,
+    /// Código de Exceção do IPI
+    pub codigo_excecao_ipi: Option<String>,
+    /// CFOP - Código Fiscal de Operações e Prestações
+    pub cfop: String,
+    /// Código GTIN (EAN) tributável
+    pub gtin: Option<String>,
+    /// Unidade tributável
+    pub unidade: String,
+    /// Quantidade tributável
+    pub quantidade: f32,
+    /// Valor unitário tributável
+    pub valor_unitario: f32,
 }
 
-// Dados referentes a tributação do produto
-#[derive(Debug, PartialEq, Eq, Clone, Deserialize_repr, Serialize_repr)]
+/// Indicador de Escala Relevante
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Deserialize_repr, Serialize_repr)]
 #[repr(u8)]
-
-pub enum escala_relevante {
+pub enum EscalaRelevante {
+    /// Produzido em escala relevante
     Sim = 1,
+    /// Não produzido em escala relevante
     Nao = 2,
 }
 
@@ -148,97 +178,123 @@ impl Serialize for Produto {
 
 #[derive(Deserialize, Serialize)]
 #[serde(rename = "prod")]
-
 struct ProdContainer {
-    #[serde(rename = "$unflatten=cProd")]
+    #[serde(rename = "cProd")]
     pub codigo: String,
-    #[serde(rename = "$unflatten=cEAN")]
+    #[serde(rename = "cEAN")]
     pub gtin: String,
-    #[serde(rename = "$unflatten=xProd")]
+    #[serde(rename = "xProd")]
     pub descricao: String,
-    #[serde(rename = "$unflatten=NCM")]
+    #[serde(rename = "NCM")]
     pub ncm: String,
-    #[serde(rename = "$unflatten=CNPJFab")]
+    #[serde(rename = "CNPJFab")]
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub fabricante_cnpj: Option<String>,
-    #[serde(rename = "$unflatten=uCom")]
+    #[serde(rename = "uCom")]
     pub unidade: String,
-    #[serde(rename = "$unflatten=qCom")]
+    #[serde(rename = "qCom")]
     pub quantidade: f32,
-    #[serde(rename = "$unflatten=vUnCom")]
+    #[serde(rename = "vUnCom")]
     pub valor_unitario: f32,
-    #[serde(rename = "$unflatten=vProd")]
+    #[serde(rename = "vProd")]
     pub valor_bruto: f32,
-    #[serde(rename = "$unflatten=vFrete")]
+    #[serde(rename = "vFrete")]
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub valor_frete: Option<f32>,
-    #[serde(rename = "$unflatten=vDesc")]
+    #[serde(rename = "vSeg")]
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub valor_seguro: Option<f32>,
-    #[serde(rename = "$unflatten=vSeg")]
+    #[serde(rename = "vDesc")]
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub valor_desconto: Option<f32>,
-    #[serde(rename = "$unflatten=vOutro")]
+    #[serde(rename = "vOutro")]
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub valor_outros: Option<f32>,
-    #[serde(rename = "$unflatten=indTot")]
+    #[serde(rename = "indTot")]
     pub valor_compoe_total_nota: u8,
 
-    #[serde(rename = "$unflatten=CEST")]
+    #[serde(rename = "CEST")]
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub t_cest: Option<String>,
-    #[serde(rename = "$unflatten=indEscala")]
+    #[serde(rename = "indEscala")]
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub t_escala_relevante: Option<EscalaRelevante>,
-    #[serde(rename = "$unflatten=cBenef")]
+    #[serde(rename = "cBenef")]
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub t_codigo_beneficio_fiscal: Option<String>,
-    #[serde(rename = "$unflatten=EXTIPI")]
+    #[serde(rename = "EXTIPI")]
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub t_codigo_excecao_ipi: Option<String>,
-    #[serde(rename = "$unflatten=CFOP")]
+    #[serde(rename = "CFOP")]
     pub t_cfop: String,
-    #[serde(rename = "$unflatten=cEANTrib")]
+    #[serde(rename = "cEANTrib")]
     pub t_gtin: String,
-    #[serde(rename = "$unflatten=uTrib")]
+    #[serde(rename = "uTrib")]
     pub t_unidade: String,
-    #[serde(rename = "$unflatten=qTrib")]
+    #[serde(rename = "qTrib")]
     pub t_quantidade: f32,
-    #[serde(rename = "$unflatten=vUnTrib")]
+    #[serde(rename = "vUnTrib")]
     pub t_valor_unitario: f32,
 }
 
 impl Produto {
-    // new instance
+    /// Cria uma nova instância de Produto
+    ///
+    /// # Argumentos
+    ///
+    /// * `codigo` - Código do produto
+    /// * `descricao` - Descrição do produto
+    /// * `ncm` - Código NCM
+    /// * `cfop` - Código CFOP
+    /// * `unidade` - Unidade comercial
+    /// * `quantidade` - Quantidade comercial
+    /// * `valor_unitario` - Valor unitário
+    /// * `valor_bruto` - Valor bruto total
     pub fn new(
-        codigo_produto: String,
-        codigo_ean: String,
+        codigo: String,
         descricao: String,
         ncm: String,
         cfop: String,
-        unidade_comercial: String,
-        quantidade_comercial: f32,
-        valor_unitario_comercial: f64,
-        valor_total: f64,
-        codigo_ean_tributavel: String,
-        unidade_tributavel: String,
-        quantidade_tributavel: f32,
-        valor_unitario_tributavel: f64,
+        unidade: String,
+        quantidade: f32,
+        valor_unitario: f32,
+        valor_bruto: f32,
     ) -> Self {
         Produto {
-            codigo_produto,
-            codigo_ean,
+            codigo,
+            gtin: None,
             descricao,
             ncm,
-            cfop,
-            unidade_comercial,
-            quantidade_comercial,
-            valor_unitario_comercial,
-            valor_total,
-            codigo_ean_tributavel,
-            unidade_tributavel,
-            quantidade_tributavel,
-            valor_unitario_tributavel,
+            fabricante_cnpj: None,
+            tributacao: ProdutoTributacao {
+                cest: None,
+                escala_relevante: None,
+                codigo_beneficio_fiscal: None,
+                codigo_excecao_ipi: None,
+                cfop,
+                gtin: None,
+                unidade: unidade.clone(),
+                quantidade,
+                valor_unitario,
+            },
+            unidade,
+            quantidade,
+            valor_unitario,
+            valor_bruto,
+            valor_frete: None,
+            valor_seguro: None,
+            valor_desconto: None,
+            valor_outros: None,
+            valor_compoe_total_nota: true,
         }
     }
 }
