@@ -1,11 +1,12 @@
 //! Certificado Digital A1 (arquivo .pfx/.p12)
 //!
-//! Versão simplificada sem dependência de OpenSSL
+//! Parsing real de certificado PKCS12 usando crates p12 e x509-cert
 
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
 use base64::Engine;
+use chrono::{DateTime, Utc};
 
 /// Informações do certificado digital
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -27,6 +28,10 @@ pub struct CertificadoA1 {
     pub pfx_data: Vec<u8>,
     pub senha: String,
     pub info: CertificadoInfo,
+    /// Certificado X509 em DER
+    pub cert_der: Vec<u8>,
+    /// Chave privada em DER (PKCS8)
+    pub private_key_der: Vec<u8>,
 }
 
 impl CertificadoA1 {
@@ -50,74 +55,164 @@ impl CertificadoA1 {
             return Err("Arquivo não parece ser um certificado PKCS12 válido".to_string());
         }
 
-        // Extrair informações básicas do certificado
-        let info = Self::extract_basic_info(pfx_data)?;
+        // Parsear o arquivo PFX usando p12
+        let pfx = p12::PFX::parse(pfx_data)
+            .map_err(|e| format!("Erro ao parsear PKCS12: {:?}", e))?;
+
+        // Extrair certificados (DER encoded)
+        let certs = pfx.cert_bags(senha)
+            .map_err(|e| format!("Erro ao extrair certificado (senha incorreta?): {:?}", e))?;
+
+        // Extrair chaves privadas (DER encoded)
+        let keys = pfx.key_bags(senha)
+            .map_err(|e| format!("Erro ao extrair chave privada: {:?}", e))?;
+
+        let cert_der = certs.into_iter().next()
+            .ok_or("Certificado não encontrado no arquivo PFX")?;
+
+        let private_key_der = keys.into_iter().next()
+            .ok_or("Chave privada não encontrada no arquivo PFX")?;
+
+        // Extrair informações do certificado X509
+        let info = Self::extract_cert_info(&cert_der)?;
 
         Ok(Self {
             pfx_data: pfx_data.to_vec(),
             senha: senha.to_string(),
             info,
+            cert_der,
+            private_key_der,
         })
     }
 
-    /// Extrai informações básicas do certificado
-    fn extract_basic_info(pfx_data: &[u8]) -> Result<CertificadoInfo, String> {
-        // Análise simplificada do PKCS12
-        // Em produção, usar biblioteca especializada como pkcs12 ou openssl
+    /// Extrai informações do certificado X509 DER
+    fn extract_cert_info(cert_der: &[u8]) -> Result<CertificadoInfo, String> {
+        use x509_cert::Certificate;
+        use der::Decode;
 
-        // Tentar encontrar strings no certificado que podem conter informações
-        let data_str = String::from_utf8_lossy(pfx_data);
+        let cert = Certificate::from_der(cert_der)
+            .map_err(|e| format!("Erro ao parsear certificado X509: {:?}", e))?;
 
-        // Procurar CNPJ (14 dígitos)
-        let cnpj = Self::find_cnpj(&data_str);
+        // Subject (nome do titular)
+        let subject = cert.tbs_certificate.subject.to_string();
 
-        // Procurar razão social (após CN=)
-        let razao_social = Self::find_cn(&data_str);
+        // Issuer (autoridade certificadora)
+        let issuer = cert.tbs_certificate.issuer.to_string();
+
+        // Número serial
+        let serial_bytes = cert.tbs_certificate.serial_number.as_bytes();
+        let serial_number = hex::encode(serial_bytes);
+
+        // Datas de validade
+        let not_before = cert.tbs_certificate.validity.not_before.to_system_time();
+        let not_after = cert.tbs_certificate.validity.not_after.to_system_time();
+
+        let not_before_dt: DateTime<Utc> = not_before.into();
+        let not_after_dt: DateTime<Utc> = not_after.into();
+
+        // Calcular dias para expirar
+        let now = Utc::now();
+        let dias_para_expirar = (not_after_dt - now).num_days();
+        let valido = now >= not_before_dt && now <= not_after_dt;
+
+        // Extrair CNPJ do subject (padrão ICP-Brasil)
+        let cnpj = Self::extract_cnpj_from_subject(&subject);
+
+        // Extrair razão social do CN
+        let razao_social = Self::extract_cn_from_subject(&subject);
 
         Ok(CertificadoInfo {
-            subject: razao_social.clone().unwrap_or_else(|| "Certificado A1".to_string()),
-            issuer: "AC Certificadora".to_string(),
-            serial_number: "N/A".to_string(),
-            not_before: "N/A".to_string(),
-            not_after: "N/A".to_string(),
+            subject: subject.clone(),
+            issuer,
+            serial_number,
+            not_before: not_before_dt.format("%Y-%m-%d %H:%M:%S").to_string(),
+            not_after: not_after_dt.format("%Y-%m-%d %H:%M:%S").to_string(),
             cnpj,
             razao_social,
-            valido: true, // Assumir válido - validação real requer parsing completo
-            dias_para_expirar: 365, // Placeholder
+            valido,
+            dias_para_expirar,
         })
     }
 
-    fn find_cnpj(data: &str) -> Option<String> {
-        // Procurar sequência de 14 dígitos que pode ser CNPJ
+    /// Extrai CNPJ do subject do certificado (padrão ICP-Brasil)
+    fn extract_cnpj_from_subject(subject: &str) -> Option<String> {
+        // Padrões comuns de CNPJ no certificado ICP-Brasil:
+        // serialNumber=12345678000199
+        // 2.16.76.1.3.3=12345678000199 (OID para CNPJ)
+
+        // Tentar extrair do serialNumber
+        if let Some(pos) = subject.find("serialNumber=") {
+            let start = pos + 13;
+            let end = subject[start..].find(|c: char| c == ',' || c == '+' || c == '/')
+                .map(|p| start + p)
+                .unwrap_or(subject.len());
+            let value = &subject[start..end];
+            // CNPJ tem 14 dígitos
+            let digits: String = value.chars().filter(|c| c.is_ascii_digit()).collect();
+            if digits.len() == 14 {
+                return Some(digits);
+            }
+        }
+
+        // Tentar extrair do OID do CNPJ (2.16.76.1.3.3)
+        if let Some(pos) = subject.find("2.16.76.1.3.3=") {
+            let start = pos + 14;
+            let end = subject[start..].find(|c: char| c == ',' || c == '+' || c == '/')
+                .map(|p| start + p)
+                .unwrap_or(subject.len());
+            let value = &subject[start..end];
+            let digits: String = value.chars().filter(|c| c.is_ascii_digit()).collect();
+            if digits.len() == 14 {
+                return Some(digits);
+            }
+        }
+
+        // Busca genérica por 14 dígitos consecutivos
         let re = regex::Regex::new(r"(\d{14})").ok()?;
-        for cap in re.captures_iter(data) {
+        for cap in re.captures_iter(subject) {
             if let Some(m) = cap.get(1) {
                 let digits = m.as_str();
-                // Validar que parece um CNPJ (não começa com muitos zeros)
                 if !digits.starts_with("000000") {
                     return Some(digits.to_string());
                 }
             }
         }
+
         None
     }
 
-    fn find_cn(data: &str) -> Option<String> {
-        // Procurar Common Name
-        if let Some(pos) = data.find("CN=") {
+    /// Extrai Common Name (CN) do subject
+    fn extract_cn_from_subject(subject: &str) -> Option<String> {
+        // Procurar CN=...
+        if let Some(pos) = subject.find("CN=") {
             let start = pos + 3;
-            let end = data[start..].find(|c| c == ',' || c == '\0' || c == '/')
+            let end = subject[start..].find(|c: char| c == ',' || c == '+')
                 .map(|p| start + p)
-                .unwrap_or(start + 50.min(data.len() - start));
-            let cn = data[start..end].trim();
-            if !cn.is_empty() && cn.len() > 3 {
+                .unwrap_or(subject.len());
+            let cn = subject[start..end].trim();
+            if !cn.is_empty() {
                 return Some(cn.to_string());
             }
         }
         None
     }
 
-    /// Retorna o certificado em base64
+    /// Retorna o certificado em base64 (formato PEM sem headers)
+    pub fn cert_base64(&self) -> String {
+        base64::engine::general_purpose::STANDARD.encode(&self.cert_der)
+    }
+
+    /// Retorna o certificado em formato PEM
+    pub fn cert_pem(&self) -> String {
+        let b64 = self.cert_base64();
+        let lines: Vec<&str> = b64.as_bytes()
+            .chunks(64)
+            .map(|chunk| std::str::from_utf8(chunk).unwrap_or(""))
+            .collect();
+        format!("-----BEGIN CERTIFICATE-----\n{}\n-----END CERTIFICATE-----", lines.join("\n"))
+    }
+
+    /// Retorna o PFX original em base64
     pub fn to_base64(&self) -> String {
         base64::engine::general_purpose::STANDARD.encode(&self.pfx_data)
     }
@@ -131,6 +226,19 @@ impl CertificadoA1 {
     pub fn senha(&self) -> &str {
         &self.senha
     }
+
+    /// Verifica se o certificado ainda é válido
+    pub fn is_valid(&self) -> bool {
+        self.info.valido && self.info.dias_para_expirar > 0
+    }
+
+    /// Retorna a chave privada RSA
+    pub fn private_key(&self) -> Result<rsa::RsaPrivateKey, String> {
+        use pkcs8::DecodePrivateKey;
+
+        rsa::RsaPrivateKey::from_pkcs8_der(&self.private_key_der)
+            .map_err(|e| format!("Erro ao carregar chave privada: {:?}", e))
+    }
 }
 
 #[cfg(test)]
@@ -138,9 +246,16 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_find_cnpj() {
-        let data = "algo12345678000199algo";
-        let cnpj = CertificadoA1::find_cnpj(data);
+    fn test_extract_cnpj_serial_number() {
+        let subject = "CN=EMPRESA TESTE LTDA:12345678000199,serialNumber=12345678000199,C=BR";
+        let cnpj = CertificadoA1::extract_cnpj_from_subject(subject);
         assert_eq!(cnpj, Some("12345678000199".to_string()));
+    }
+
+    #[test]
+    fn test_extract_cn() {
+        let subject = "CN=EMPRESA TESTE LTDA,OU=AR,O=ICP-Brasil,C=BR";
+        let cn = CertificadoA1::extract_cn_from_subject(subject);
+        assert_eq!(cn, Some("EMPRESA TESTE LTDA".to_string()));
     }
 }

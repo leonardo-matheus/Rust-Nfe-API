@@ -1,6 +1,6 @@
 [package]
 name = "nfe-web"
-version = "0.2.1"
+version = "0.2.2"
 edition = "2021"
 authors = ["Leonardo Matheus <contato@leonardomdev.me>"]
 description = "API REST/GraphQL de alto desempenho para NF-e com integracao SEFAZ, geracao de DANFE e suporte a certificado digital"
@@ -68,13 +68,21 @@ base64 = "0.22"
 # Regex
 regex = "1.10"
 
+# Hex encoding
+hex = "0.4"
+
 # HTTP client (usando native-tls para Windows)
 reqwest = { version = "0.12", features = ["json", "native-tls", "multipart"] }
 
-# Criptografia (ring funciona no Windows sem dependências externas)
+# Criptografia e certificados digitais
 sha2 = "0.10"
-rsa = "0.9"
+sha1 = "0.10"
+rsa = { version = "0.9", features = ["sha2"] }
 pkcs8 = { version = "0.10", features = ["pem", "encryption"] }
+p12 = "0.6"
+x509-cert = "0.2"
+der = "0.7"
+signature = "2.2"
 
 # Cache e performance
 dashmap = "6"

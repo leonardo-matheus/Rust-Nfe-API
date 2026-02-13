@@ -42,7 +42,7 @@
 //! - [`sefaz`]: Consulta e integracao com SEFAZ
 //! - [`db`]: Modelos e conexao com banco de dados
 
-#![doc(html_root_url = "https://docs.rs/nfe-web/0.2.1")]
+#![doc(html_root_url = "https://docs.rs/nfe-web/0.2.2")]
 
 /// Modulo de certificado digital A1
 ///
@@ -88,16 +88,11 @@ pub mod graphql;
 /// # Exemplo
 ///
 /// ```rust,no_run
-/// use nfe_web::pdf::{extract_danfe_data, gerar_danfe, DanfeInput};
+/// use nfe_web::pdf::extract_danfe_data;
 ///
 /// // Ler dados de um PDF
-/// let bytes = std::fs::read("danfe.pdf")?;
-/// let dados = extract_danfe_data(&bytes)?;
-///
-/// // Gerar DANFE
-/// let input = DanfeInput { /* ... */ };
-/// let pdf_bytes = gerar_danfe(&input)?;
-/// # Ok::<(), Box<dyn std::error::Error>>(())
+/// let bytes = std::fs::read("danfe.pdf").unwrap();
+/// let dados = extract_danfe_data(&bytes);
 /// ```
 pub mod pdf;
 
