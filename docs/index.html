@@ -480,8 +480,8 @@
                 <ul class="nav-links">
                     <li><a href="#features">Funcionalidades</a></li>
                     <li><a href="#examples">Exemplos</a></li>
+                    <li><a href="#tutorial">Tutorial</a></li>
                     <li><a href="#structures">Estruturas</a></li>
-                    <li><a href="https://docs.rs/nfe" target="_blank">Docs</a></li>
                 </ul>
                 <a href="https://github.com/leonardo-matheus/Rust-Nfe-API" class="github-btn">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
@@ -577,11 +577,11 @@
                     <div class="code-info">
                         <h2>Fácil de Usar</h2>
                         <p>
-                            Parse de XML de NF-e em poucas linhas de código. 
+                            Parse de XML de NF-e em poucas linhas de código.
                             A biblioteca cuida de toda a complexidade do XML para você.
                         </p>
                         <p>
-                            Acesse todos os campos da nota fiscal através de structs Rust 
+                            Acesse todos os campos da nota fiscal através de structs Rust
                             bem tipadas e documentadas.
                         </p>
                         <ul>
@@ -599,33 +599,199 @@
                             <div class="code-dot green"></div>
                         </div>
                         <div class="code-content">
-<pre><span class="code-keyword">use</span> std::fs::File;
-<span class="code-keyword">use</span> std::convert::TryFrom;
-<span class="code-keyword">use</span> nfe::{Nfe, ModeloDocumentoFiscal};
+<pre><span class="code-keyword">use</span> nfe::Nfe;
 
-<span class="code-keyword">fn</span> <span class="code-function">main</span>() -> <span class="code-type">Result</span>&lt;(), <span class="code-type">Box</span>&lt;<span class="code-keyword">dyn</span> std::error::Error&gt;&gt; {
-    <span class="code-comment">// Parse de arquivo XML</span>
-    <span class="code-keyword">let</span> file = File::open(<span class="code-string">"nota.xml"</span>)?;
-    <span class="code-keyword">let</span> nfe = Nfe::try_from(file)?;
-    
+<span class="code-keyword">fn</span> <span class="code-function">main</span>() -> <span class="code-type">Result</span>&lt;(), nfe::<span class="code-type">Error</span>&gt; {
+    <span class="code-comment">// Parse de string XML (sem namespace)</span>
+    <span class="code-keyword">let</span> xml = std::fs::read_to_string(<span class="code-string">"nota.xml"</span>)?;
+    <span class="code-keyword">let</span> xml = xml.replace(
+        <span class="code-string">"xmlns=\"http://www.portalfiscal.inf.br/nfe\""</span>, <span class="code-string">""</span>
+    );
+
+    <span class="code-comment">// Extrair tag &lt;NFe&gt; e fazer parse</span>
+    <span class="code-keyword">let</span> nfe: <span class="code-type">Nfe</span> = xml.parse()?;
+
     <span class="code-comment">// Acessar dados da nota</span>
     <span class="code-macro">println!</span>(<span class="code-string">"Chave: {}"</span>, nfe.chave_acesso);
     <span class="code-macro">println!</span>(<span class="code-string">"Emitente: {:?}"</span>, nfe.emit.razao_social);
-    <span class="code-macro">println!</span>(<span class="code-string">"Total: {}"</span>, nfe.totais.valor_total);
-    
-    <span class="code-comment">// Verificar modelo</span>
-    <span class="code-keyword">match</span> nfe.ide.modelo {
-        ModeloDocumentoFiscal::Nfe => {
-            <span class="code-macro">println!</span>(<span class="code-string">"NF-e modelo 55"</span>);
-        }
-        ModeloDocumentoFiscal::Nfce => {
-            <span class="code-macro">println!</span>(<span class="code-string">"NFC-e modelo 65"</span>);
-        }
+    <span class="code-macro">println!</span>(<span class="code-string">"Total: R$ {:.2}"</span>, nfe.totais.valor_total);
+
+    <span class="code-comment">// Iterar sobre os itens</span>
+    <span class="code-keyword">for</span> item <span class="code-keyword">in</span> &nfe.itens {
+        <span class="code-macro">println!</span>(<span class="code-string">"{}. {} - R$ {:.2}"</span>,
+            item.numero,
+            item.produto.descricao,
+            item.produto.valor_bruto
+        );
     }
-    
+
     <span class="code-type">Ok</span>(())
 }</pre>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Seção Tutorial Detalhado -->
+        <section class="features" id="tutorial">
+            <div class="container">
+                <div class="section-header">
+                    <h2>Guia de Uso</h2>
+                    <p>Aprenda a utilizar a biblioteca passo a passo</p>
+                </div>
+
+                <div class="code-block" style="margin-bottom: 2rem;">
+                    <div class="code-header">
+                        <span style="color: var(--text-muted); font-size: 0.9rem;">1. Parsing de XML de NF-e</span>
+                    </div>
+                    <div class="code-content">
+<pre><span class="code-keyword">use</span> nfe::Nfe;
+
+<span class="code-comment">// O XML da SEFAZ contém namespace que deve ser removido</span>
+<span class="code-keyword">let</span> xml_original = std::fs::read_to_string(<span class="code-string">"nfe.xml"</span>)?;
+<span class="code-keyword">let</span> xml = xml_original.replace(
+    <span class="code-string">"xmlns=\"http://www.portalfiscal.inf.br/nfe\""</span>, <span class="code-string">""</span>
+);
+
+<span class="code-comment">// Se o XML for nfeProc (com protocolo), extraia apenas a tag &lt;NFe&gt;</span>
+<span class="code-keyword">let</span> nfe_start = xml.find(<span class="code-string">"&lt;NFe"</span>).unwrap();
+<span class="code-keyword">let</span> nfe_end = xml.find(<span class="code-string">"&lt;/NFe&gt;"</span>).unwrap() + <span class="code-string">6</span>;
+<span class="code-keyword">let</span> nfe_xml = &xml[nfe_start..nfe_end];
+
+<span class="code-comment">// Parse usando o trait FromStr</span>
+<span class="code-keyword">let</span> nfe: <span class="code-type">Nfe</span> = nfe_xml.parse()?;</pre>
+                    </div>
+                </div>
+
+                <div class="code-block" style="margin-bottom: 2rem;">
+                    <div class="code-header">
+                        <span style="color: var(--text-muted); font-size: 0.9rem;">2. Acessando Dados do Emitente</span>
+                    </div>
+                    <div class="code-content">
+<pre><span class="code-comment">// Dados do emitente (quem emitiu a nota)</span>
+<span class="code-keyword">if let</span> <span class="code-type">Some</span>(cnpj) = &nfe.emit.cnpj {
+    <span class="code-macro">println!</span>(<span class="code-string">"CNPJ: {}"</span>, cnpj);
+}
+<span class="code-keyword">if let</span> <span class="code-type">Some</span>(razao) = &nfe.emit.razao_social {
+    <span class="code-macro">println!</span>(<span class="code-string">"Razão Social: {}"</span>, razao);
+}
+
+<span class="code-comment">// Endereço do emitente</span>
+<span class="code-macro">println!</span>(<span class="code-string">"Endereço: {}, {}"</span>,
+    nfe.emit.endereco.logradouro,
+    nfe.emit.endereco.numero
+);
+<span class="code-macro">println!</span>(<span class="code-string">"Cidade: {} - {}"</span>,
+    nfe.emit.endereco.nome_municipio,
+    nfe.emit.endereco.sigla_uf
+);</pre>
+                    </div>
+                </div>
+
+                <div class="code-block" style="margin-bottom: 2rem;">
+                    <div class="code-header">
+                        <span style="color: var(--text-muted); font-size: 0.9rem;">3. Iterando sobre Itens/Produtos</span>
+                    </div>
+                    <div class="code-content">
+<pre><span class="code-comment">// Cada item contém produto, impostos e número sequencial</span>
+<span class="code-keyword">for</span> item <span class="code-keyword">in</span> &nfe.itens {
+    <span class="code-keyword">let</span> prod = &item.produto;
+
+    <span class="code-macro">println!</span>(<span class="code-string">"Item {}: {}"</span>, item.numero, prod.descricao);
+    <span class="code-macro">println!</span>(<span class="code-string">"  Código: {}"</span>, prod.codigo);
+    <span class="code-macro">println!</span>(<span class="code-string">"  NCM: {}"</span>, prod.ncm);
+    <span class="code-macro">println!</span>(<span class="code-string">"  Qtd: {} {} x R$ {:.2} = R$ {:.2}"</span>,
+        prod.quantidade,
+        prod.unidade,
+        prod.valor_unitario,
+        prod.valor_bruto
+    );
+
+    <span class="code-comment">// CFOP está na tributação do produto</span>
+    <span class="code-macro">println!</span>(<span class="code-string">"  CFOP: {}"</span>, prod.tributacao.cfop);
+
+    <span class="code-comment">// Verificar desconto</span>
+    <span class="code-keyword">if let</span> <span class="code-type">Some</span>(desc) = prod.valor_desconto {
+        <span class="code-macro">println!</span>(<span class="code-string">"  Desconto: R$ {:.2}"</span>, desc);
+    }
+}</pre>
+                    </div>
+                </div>
+
+                <div class="code-block" style="margin-bottom: 2rem;">
+                    <div class="code-header">
+                        <span style="color: var(--text-muted); font-size: 0.9rem;">4. Totais e Impostos</span>
+                    </div>
+                    <div class="code-content">
+<pre><span class="code-comment">// Totais da nota fiscal</span>
+<span class="code-macro">println!</span>(<span class="code-string">"Valor Produtos: R$ {:.2}"</span>, nfe.totais.valor_produtos);
+<span class="code-macro">println!</span>(<span class="code-string">"Valor Frete: R$ {:.2}"</span>, nfe.totais.valor_frete);
+<span class="code-macro">println!</span>(<span class="code-string">"Valor Desconto: R$ {:.2}"</span>, nfe.totais.valor_desconto);
+<span class="code-macro">println!</span>(<span class="code-string">"Valor Total: R$ {:.2}"</span>, nfe.totais.valor_total);
+<span class="code-macro">println!</span>(<span class="code-string">"Tributos Aprox.: R$ {:.2}"</span>, nfe.totais.valor_aproximado_tributos);
+
+<span class="code-comment">// Totais de ICMS</span>
+<span class="code-macro">println!</span>(<span class="code-string">"Base ICMS: R$ {:.2}"</span>, nfe.totais.base_calculo_icms);
+<span class="code-macro">println!</span>(<span class="code-string">"Valor ICMS: R$ {:.2}"</span>, nfe.totais.valor_icms);</pre>
+                    </div>
+                </div>
+
+                <div class="code-block" style="margin-bottom: 2rem;">
+                    <div class="code-header">
+                        <span style="color: var(--text-muted); font-size: 0.9rem;">5. Identificação da Nota</span>
+                    </div>
+                    <div class="code-content">
+<pre><span class="code-keyword">use</span> nfe::{TipoAmbiente, ModeloDocumentoFiscal, TipoOperacao};
+
+<span class="code-comment">// Dados de identificação (ide)</span>
+<span class="code-macro">println!</span>(<span class="code-string">"Chave de Acesso: {}"</span>, nfe.chave_acesso);
+<span class="code-macro">println!</span>(<span class="code-string">"Número: {}"</span>, nfe.ide.numero);
+<span class="code-macro">println!</span>(<span class="code-string">"Série: {}"</span>, nfe.ide.serie);
+<span class="code-macro">println!</span>(<span class="code-string">"Natureza: {}"</span>, nfe.ide.operacao.natureza);
+
+<span class="code-comment">// Verificar ambiente (produção ou homologação)</span>
+<span class="code-keyword">match</span> nfe.ide.ambiente {
+    TipoAmbiente::Producao => <span class="code-macro">println!</span>(<span class="code-string">"Ambiente: Produção"</span>),
+    TipoAmbiente::Homologacao => <span class="code-macro">println!</span>(<span class="code-string">"Ambiente: Homologação"</span>),
+}
+
+<span class="code-comment">// Verificar tipo de operação</span>
+<span class="code-keyword">match</span> nfe.ide.operacao.tipo {
+    TipoOperacao::Entrada => <span class="code-macro">println!</span>(<span class="code-string">"Operação: Entrada"</span>),
+    TipoOperacao::Saida => <span class="code-macro">println!</span>(<span class="code-string">"Operação: Saída"</span>),
+}</pre>
+                    </div>
+                </div>
+
+                <div class="code-block">
+                    <div class="code-header">
+                        <span style="color: var(--text-muted); font-size: 0.9rem;">6. Tratamento de Erros</span>
+                    </div>
+                    <div class="code-content">
+<pre><span class="code-keyword">use</span> nfe::{Nfe, Error};
+
+<span class="code-keyword">fn</span> <span class="code-function">processar_nfe</span>(xml: &<span class="code-type">str</span>) -> <span class="code-type">Result</span>&lt;<span class="code-type">Nfe</span>, <span class="code-type">Error</span>&gt; {
+    <span class="code-keyword">let</span> nfe: <span class="code-type">Nfe</span> = xml.parse()?;
+    <span class="code-type">Ok</span>(nfe)
+}
+
+<span class="code-keyword">fn</span> <span class="code-function">main</span>() {
+    <span class="code-keyword">match</span> processar_nfe(xml_content) {
+        <span class="code-type">Ok</span>(nfe) => {
+            <span class="code-macro">println!</span>(<span class="code-string">"NF-e processada: {}"</span>, nfe.chave_acesso);
+        }
+        <span class="code-type">Err</span>(Error::Xml(e)) => {
+            <span class="code-macro">eprintln!</span>(<span class="code-string">"Erro de XML: {}"</span>, e);
+        }
+        <span class="code-type">Err</span>(Error::Io(e)) => {
+            <span class="code-macro">eprintln!</span>(<span class="code-string">"Erro de IO: {}"</span>, e);
+        }
+        <span class="code-type">Err</span>(e) => {
+            <span class="code-macro">eprintln!</span>(<span class="code-string">"Erro: {}"</span>, e);
+        }
+    }
+}</pre>
                     </div>
                 </div>
             </div>

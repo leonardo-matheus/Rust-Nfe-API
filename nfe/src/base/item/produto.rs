@@ -97,13 +97,20 @@ impl<'de> Deserialize<'de> for Produto {
         // TODO: Implementar a deserialização com serde flatten
         let prod = ProdContainer::deserialize(deserializer)?;
 
+        // Função auxiliar para verificar se o GTIN é válido
+        // "SEM GTIN" ou vazio são considerados ausência de GTIN
+        fn parse_gtin(gtin: String) -> Option<String> {
+            let trimmed = gtin.trim();
+            if trimmed.is_empty() || trimmed.eq_ignore_ascii_case("sem gtin") {
+                None
+            } else {
+                Some(gtin)
+            }
+        }
+
         Ok(Self {
             codigo: prod.codigo,
-            gtin: match prod.gtin.trim() {
-                "sem gtin" => None,
-                "" => None,
-                _ => Some(prod.gtin),
-            },
+            gtin: parse_gtin(prod.gtin),
             descricao: prod.descricao,
             ncm: prod.ncm,
             fabricante_cnpj: prod.fabricante_cnpj,
@@ -122,11 +129,7 @@ impl<'de> Deserialize<'de> for Produto {
                 codigo_beneficio_fiscal: prod.t_codigo_beneficio_fiscal,
                 codigo_excecao_ipi: prod.t_codigo_excecao_ipi,
                 cfop: prod.t_cfop,
-                gtin: match prod.t_gtin.trim() {
-                    "sem gtin" => None,
-                    "" => None,
-                    _ => Some(prod.t_gtin),
-                },
+                gtin: parse_gtin(prod.t_gtin),
                 unidade: prod.t_unidade,
                 quantidade: prod.t_quantidade,
                 valor_unitario: prod.t_valor_unitario,
