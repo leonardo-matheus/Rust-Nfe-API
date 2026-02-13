@@ -40,6 +40,27 @@ A **Rust NFe API** é uma biblioteca para manipulação de Notas Fiscais Eletrô
 - 🔄 **Serialização** - Converta entre Rust structs e XML
 - 📦 **NF-e & NFC-e** - Suporte aos modelos 55 e 65
 - 🧪 **Testado** - Cobertura de testes abrangente
+- 🌐 **API REST & GraphQL** - Servidor web completo
+- 📄 **DANFE PDF** - Geração de DANFE profissional
+- 🔐 **Certificado A1** - Suporte a certificado digital
+- 📡 **SEFAZ WebService** - Cliente SOAP integrado
+
+## ⚡ Benchmark de Performance
+
+Testes realizados em modo release (Windows 11, i7):
+
+| Operação | Tempo Médio |
+|----------|-------------|
+| **REST API** | |
+| Health Check | 2 ms |
+| Validar Chave Acesso | 2 ms |
+| Parse XML NF-e | 3 ms |
+| Export PDF Basico | 4 ms |
+| DANFE Profissional | 3 ms |
+| **GraphQL API** | |
+| GraphQL Health | 5 ms |
+| GraphQL Validar Chave | 5 ms |
+| GraphQL Schema SDL | 4 ms |
 
 ## 📦 Instalação
 
@@ -163,6 +184,54 @@ pub enum ModalidadeFrete {
     ContaTerceiros = 2,
     SemTransporte = 9,
 }
+```
+
+## 🌐 API REST & GraphQL
+
+O projeto inclui um servidor web completo (`nfe-web`) com:
+
+### Endpoints REST
+
+```bash
+# Health check
+curl http://localhost:8080/api/health
+
+# Parse XML de NF-e
+curl -X POST http://localhost:8080/api/parse \
+  -H "Content-Type: application/json" \
+  -d '{"xml": "<NFe>...</NFe>"}'
+
+# Validar chave de acesso
+curl http://localhost:8080/api/validar-chave/35240508665074000100550010000000011270815480
+
+# Gerar DANFE PDF
+curl -X POST http://localhost:8080/api/export/danfe \
+  -H "Content-Type: application/json" \
+  -d '{"dados": {...}}' -o danfe.pdf
+```
+
+### GraphQL
+
+```bash
+# Playground: http://localhost:8080/api/graphql/playground
+
+# Query exemplo
+curl -X POST http://localhost:8080/api/graphql \
+  -H "Content-Type: application/json" \
+  -d '{"query":"{ health }"}'
+
+# Validar chave
+curl -X POST http://localhost:8080/api/graphql \
+  -H "Content-Type: application/json" \
+  -d '{"query":"{ validarChave(chave: \"35240508...\") }"}'
+```
+
+### Executar servidor
+
+```bash
+cd web
+cargo run --release
+# Servidor em http://localhost:8080
 ```
 
 ## 🧪 Testes

@@ -29,6 +29,7 @@
 //! ```
 
 pub mod base;
+pub mod builder;
 pub mod modelos;
 
 #[cfg(test)]
@@ -49,3 +50,4 @@ pub use base::transporte::{ModalidadeFrete, Transporte};
 pub use base::Error;
 pub use base::Nfe;
 pub use base::VersaoLayout;
+pub use builder::{NfeBuilder, ItemBuilder};
