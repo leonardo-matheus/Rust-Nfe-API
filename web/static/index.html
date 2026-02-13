@@ -655,9 +655,9 @@
                         <div class="card-body">
                             <div class="upload-area" id="uploadArea">
                                 <div class="upload-icon">📁</div>
-                                <h3>Arraste o arquivo XML aqui</h3>
+                                <h3>Arraste o arquivo XML ou PDF aqui</h3>
                                 <p>ou clique para selecionar</p>
-                                <input type="file" id="fileInput" accept=".xml">
+                                <input type="file" id="fileInput" accept=".xml,.pdf">
                             </div>
 
                             <div class="file-info" id="fileInfo">
@@ -706,6 +706,16 @@
 
                     <!-- NFe Container -->
                     <div class="nfe-container" id="nfeContainer">
+                        <!-- Export Buttons -->
+                        <div class="export-buttons" style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
+                            <button class="btn btn-secondary" id="exportJsonBtn" style="flex: 1; margin-top: 0;">
+                                <span>📋</span> Exportar JSON
+                            </button>
+                            <button class="btn btn-secondary" id="exportPdfBtn" style="flex: 1; margin-top: 0;">
+                                <span>📄</span> Exportar PDF
+                            </button>
+                        </div>
+
                         <!-- Header -->
                         <div class="nfe-header">
                             <h1>📄 Nota Fiscal Eletronica</h1>
@@ -985,6 +995,8 @@
         const nfeContainer = document.getElementById('nfeContainer');
 
         let currentXml = null;
+        let currentPdf = null;
+        let currentFileType = null;
 
         // Format currency
         function formatCurrency(value) {
@@ -1031,21 +1043,37 @@
 
         // Handle file
         function handleFile(file) {
-            if (!file.name.endsWith('.xml')) {
-                alert('Por favor, selecione um arquivo XML');
+            const isXml = file.name.toLowerCase().endsWith('.xml');
+            const isPdf = file.name.toLowerCase().endsWith('.pdf');
+
+            if (!isXml && !isPdf) {
+                alert('Por favor, selecione um arquivo XML ou PDF');
                 return;
             }
 
             const reader = new FileReader();
             reader.onload = (e) => {
-                currentXml = e.target.result;
+                if (isXml) {
+                    currentXml = e.target.result;
+                    currentPdf = null;
+                    currentFileType = 'xml';
+                } else {
+                    currentPdf = e.target.result;
+                    currentXml = null;
+                    currentFileType = 'pdf';
+                }
                 fileName.textContent = file.name;
                 fileSize.textContent = formatFileSize(file.size);
                 fileInfo.classList.add('visible');
                 parseBtn.disabled = false;
                 clearBtn.style.display = 'block';
             };
-            reader.readAsText(file);
+
+            if (isXml) {
+                reader.readAsText(file);
+            } else {
+                reader.readAsDataURL(file);
+            }
         }
 
         // Format file size
@@ -1057,12 +1085,59 @@
 
         // Parse button
         parseBtn.addEventListener('click', async () => {
-            if (!currentXml) return;
+            if (!currentXml && !currentPdf) return;
 
             showLoading();
 
             try {
-                const response = await fetch('/api/parse', {
+                let response;
+                if (currentFileType === 'xml') {
+                    response = await fetch('/api/parse', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ xml: currentXml })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        displayNfe(result.data);
+                    } else {
+                        showError(result.error);
+                    }
+                } else if (currentFileType === 'pdf') {
+                    response = await fetch('/api/read-pdf-base64', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ pdf_base64: currentPdf })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        displayDanfeData(result.data);
+                    } else {
+                        showError(result.error);
+                    }
+                }
+            } catch (error) {
+                showError('Erro de conexao com o servidor: ' + error.message);
+            }
+        });
+
+        // Export JSON button
+        document.getElementById('exportJsonBtn').addEventListener('click', async () => {
+            if (!currentXml) {
+                alert('Exportar JSON so esta disponivel para arquivos XML');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/export/json', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -1070,21 +1145,65 @@
                     body: JSON.stringify({ xml: currentXml })
                 });
 
-                const result = await response.json();
-
-                if (result.success) {
-                    displayNfe(result.data);
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'nfe.json';
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    a.remove();
                 } else {
-                    showError(result.error);
+                    const result = await response.json();
+                    alert('Erro ao exportar: ' + result.error);
                 }
             } catch (error) {
-                showError('Erro de conexao com o servidor: ' + error.message);
+                alert('Erro ao exportar: ' + error.message);
+            }
+        });
+
+        // Export PDF button
+        document.getElementById('exportPdfBtn').addEventListener('click', async () => {
+            if (!currentXml) {
+                alert('Exportar PDF so esta disponivel para arquivos XML');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/export/pdf', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ xml: currentXml })
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'danfe.pdf';
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    a.remove();
+                } else {
+                    const result = await response.json();
+                    alert('Erro ao exportar: ' + result.error);
+                }
+            } catch (error) {
+                alert('Erro ao exportar: ' + error.message);
             }
         });
 
         // Clear button
         clearBtn.addEventListener('click', () => {
             currentXml = null;
+            currentPdf = null;
+            currentFileType = null;
             fileInput.value = '';
             fileInfo.classList.remove('visible');
             parseBtn.disabled = true;
@@ -1096,6 +1215,8 @@
         // Load sample
         loadSampleBtn.addEventListener('click', () => {
             currentXml = getSampleXml();
+            currentPdf = null;
+            currentFileType = 'xml';
             fileName.textContent = 'exemplo_nfe.xml';
             fileSize.textContent = formatFileSize(currentXml.length);
             fileInfo.classList.add('visible');
@@ -1212,6 +1333,96 @@
             if (data.informacao_complementar) {
                 document.getElementById('sectionInfo').style.display = 'block';
                 document.getElementById('infoComplementar').textContent = data.informacao_complementar;
+            } else {
+                document.getElementById('sectionInfo').style.display = 'none';
+            }
+        }
+
+        // Display DANFE data from PDF
+        function displayDanfeData(data) {
+            hideAll();
+            nfeContainer.classList.add('visible');
+
+            // Header
+            document.getElementById('nfeChave').textContent = data.chave_acesso || 'Nao encontrada';
+            document.getElementById('nfeNumero').textContent = data.numero || '-';
+            document.getElementById('nfeSerie').textContent = data.serie || '-';
+            document.getElementById('nfeModelo').textContent = 'Extraido de PDF';
+            document.getElementById('nfeAmbiente').textContent = '-';
+
+            // Identificacao
+            document.getElementById('ideNatureza').textContent = '-';
+            document.getElementById('ideTipo').textContent = '-';
+            document.getElementById('ideDestino').textContent = '-';
+            document.getElementById('ideFinalidade').textContent = '-';
+            document.getElementById('ideDataEmissao').textContent = data.data_emissao || '-';
+
+            // Emitente
+            document.getElementById('emitCnpj').textContent = data.emit_cnpj || '-';
+            document.getElementById('emitIe').textContent = '-';
+            document.getElementById('emitRazao').textContent = data.emit_razao_social || '-';
+            document.getElementById('emitFantasia').textContent = '-';
+            document.getElementById('emitEndereco').textContent = data.emit_endereco || '-';
+            document.getElementById('emitCidade').textContent = '-';
+            document.getElementById('emitCep').textContent = '-';
+
+            // Destinatario
+            if (data.dest_cnpj || data.dest_razao_social) {
+                document.getElementById('sectionDest').style.display = 'block';
+                document.getElementById('destCnpj').textContent = data.dest_cnpj || '-';
+                document.getElementById('destIe').textContent = '-';
+                document.getElementById('destRazao').textContent = data.dest_razao_social || '-';
+                document.getElementById('destEnderecoGroup').style.display = 'none';
+            } else {
+                document.getElementById('sectionDest').style.display = 'none';
+            }
+
+            // Itens
+            document.getElementById('itensCount').textContent = data.itens ? data.itens.length : 0;
+            const itensBody = document.getElementById('itensBody');
+            itensBody.innerHTML = '';
+
+            if (data.itens && data.itens.length > 0) {
+                data.itens.forEach((item, index) => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="item-number">${index + 1}</td>
+                        <td class="item-desc">
+                            <div>${item.descricao || '-'}</div>
+                            <div class="code">Cod: ${item.codigo || '-'}</div>
+                        </td>
+                        <td class="mono">${item.ncm || '-'}</td>
+                        <td class="mono">${item.cfop || '-'}</td>
+                        <td>${item.quantidade || '-'} ${item.unidade || ''}</td>
+                        <td class="item-values">
+                            <div class="total">${item.valor_total ? formatCurrency(item.valor_total) : '-'}</div>
+                        </td>
+                    `;
+                    itensBody.appendChild(tr);
+                });
+            } else {
+                itensBody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Itens nao extraidos do PDF</td></tr>';
+            }
+
+            // Totais
+            document.getElementById('totalProdutos').textContent = data.valor_produtos ? formatCurrency(data.valor_produtos) : '-';
+            document.getElementById('totalFrete').textContent = data.valor_frete ? formatCurrency(data.valor_frete) : '-';
+            document.getElementById('totalDesconto').textContent = data.valor_desconto ? formatCurrency(data.valor_desconto) : '-';
+            document.getElementById('totalOutros').textContent = '-';
+            document.getElementById('totalNota').textContent = data.valor_total ? formatCurrency(data.valor_total) : '-';
+            document.getElementById('totalBaseIcms').textContent = '-';
+            document.getElementById('totalIcms').textContent = '-';
+            document.getElementById('totalPis').textContent = '-';
+            document.getElementById('totalCofins').textContent = '-';
+            document.getElementById('totalTributos').textContent = '-';
+
+            // Transporte
+            document.getElementById('transpModalidade').textContent = '-';
+
+            // Info Complementar - mostrar texto completo extraido
+            if (data.texto_completo) {
+                document.getElementById('sectionInfo').style.display = 'block';
+                document.getElementById('infoComplementar').textContent = 'Texto extraido do PDF (primeiros 2000 caracteres):\n\n' + data.texto_completo.substring(0, 2000);
             } else {
                 document.getElementById('sectionInfo').style.display = 'none';
             }
