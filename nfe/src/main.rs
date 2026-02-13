@@ -11,7 +11,7 @@
 //! - Exibição formatada dos dados
 
 use std::io;
-use nfe::Nfe;
+use nfe_parser::Nfe;
 use tokio::fs::File;
 use tokio::io::AsyncReadExt;
 

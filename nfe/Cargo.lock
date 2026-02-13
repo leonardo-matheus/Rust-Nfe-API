@@ -505,7 +505,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "nfe"
+name = "nfe-parser"
 version = "0.1.0"
 dependencies = [
  "chrono",

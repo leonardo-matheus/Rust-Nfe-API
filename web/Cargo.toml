@@ -6,7 +6,7 @@ description = "Interface web para visualização de NF-e"
 
 [dependencies]
 # Biblioteca NFe local
-nfe = { path = "../nfe" }
+nfe-parser = { path = "../nfe" }
 
 # Web framework
 actix-web = "4"
