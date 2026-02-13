@@ -1,0 +1,25 @@
+[package]
+name = "nfe-web"
+version = "0.1.0"
+edition = "2021"
+description = "Interface web para visualização de NF-e"
+
+[dependencies]
+# Biblioteca NFe local
+nfe = { path = "../nfe" }
+
+# Web framework
+actix-web = "4"
+actix-files = "0.6"
+actix-cors = "0.7"
+
+# Serialização
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+
+# Logging
+env_logger = "0.11"
+log = "0.4"

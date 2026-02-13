@@ -1,0 +1,1462 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NFe Parser - Visualizador de Nota Fiscal Eletronica</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #f97316;
+            --primary-dark: #ea580c;
+            --secondary: #1e293b;
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --bg-card-hover: #263548;
+            --text: #f1f5f9;
+            --text-muted: #94a3b8;
+            --border: #334155;
+            --success: #22c55e;
+            --error: #ef4444;
+            --warning: #f59e0b;
+            --code-bg: #0d1117;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        /* Header */
+        header {
+            padding: 1.5rem 0;
+            border-bottom: 1px solid var(--border);
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-decoration: none;
+            color: var(--text);
+            font-weight: 700;
+            font-size: 1.25rem;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            border-radius: 50px;
+            font-size: 0.85rem;
+            color: var(--success);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--success);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Main Content */
+        main {
+            padding: 2rem 0;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 400px 1fr;
+            gap: 2rem;
+            align-items: start;
+        }
+
+        @media (max-width: 1024px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Upload Section */
+        .upload-section {
+            position: sticky;
+            top: 100px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .card-header h2 {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .card-body {
+            padding: 1.5rem;
+        }
+
+        .upload-area {
+            border: 2px dashed var(--border);
+            border-radius: 10px;
+            padding: 2.5rem 1.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .upload-area:hover, .upload-area.drag-over {
+            border-color: var(--primary);
+            background: rgba(249, 115, 22, 0.05);
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .upload-area h3 {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .upload-area p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .upload-area input {
+            display: none;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.2s;
+            cursor: pointer;
+            border: none;
+            width: 100%;
+            margin-top: 1rem;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--primary-dark);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .file-info {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            display: none;
+        }
+
+        .file-info.visible {
+            display: block;
+        }
+
+        .file-info .filename {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            color: var(--primary);
+            word-break: break-all;
+        }
+
+        .file-info .filesize {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        /* Sample XML */
+        .sample-section {
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .sample-section h4 {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-bottom: 0.75rem;
+        }
+
+        /* Results Section */
+        .results-section {
+            min-height: 400px;
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 400px;
+            text-align: center;
+            color: var(--text-muted);
+        }
+
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 1.5rem;
+            opacity: 0.5;
+        }
+
+        .empty-state h3 {
+            font-size: 1.25rem;
+            color: var(--text);
+            margin-bottom: 0.5rem;
+        }
+
+        /* Loading */
+        .loading {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 400px;
+        }
+
+        .loading.visible {
+            display: flex;
+        }
+
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 3px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading p {
+            margin-top: 1rem;
+            color: var(--text-muted);
+        }
+
+        /* Error */
+        .error-box {
+            display: none;
+            padding: 1.5rem;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 10px;
+            margin-bottom: 1.5rem;
+        }
+
+        .error-box.visible {
+            display: block;
+        }
+
+        .error-box h4 {
+            color: var(--error);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .error-box p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        /* NFe Display */
+        .nfe-container {
+            display: none;
+        }
+
+        .nfe-container.visible {
+            display: block;
+        }
+
+        .nfe-header {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            padding: 2rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+        }
+
+        .nfe-header h1 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .nfe-header .chave {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            opacity: 0.9;
+            word-break: break-all;
+        }
+
+        .nfe-meta {
+            display: flex;
+            gap: 2rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .nfe-meta-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .nfe-meta-item label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            opacity: 0.7;
+        }
+
+        .nfe-meta-item span {
+            font-weight: 600;
+        }
+
+        .section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+        }
+
+        .section-header {
+            padding: 1rem 1.5rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .section-header:hover {
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .section-header h3 {
+            font-size: 1rem;
+            flex: 1;
+        }
+
+        .section-toggle {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            transition: transform 0.3s;
+        }
+
+        .section.collapsed .section-toggle {
+            transform: rotate(-90deg);
+        }
+
+        .section-content {
+            padding: 1.5rem;
+            display: grid;
+            gap: 1rem;
+        }
+
+        .section.collapsed .section-content {
+            display: none;
+        }
+
+        .field-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .field label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+
+        .field span {
+            font-size: 0.95rem;
+        }
+
+        .field span.highlight {
+            color: var(--primary);
+            font-weight: 500;
+        }
+
+        .field span.mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Items Table */
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .items-table th {
+            text-align: left;
+            padding: 0.75rem 1rem;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            background: rgba(0, 0, 0, 0.2);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .items-table td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.9rem;
+        }
+
+        .items-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .items-table tr:hover td {
+            background: rgba(249, 115, 22, 0.05);
+        }
+
+        .item-number {
+            width: 50px;
+            text-align: center;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .item-desc {
+            max-width: 300px;
+        }
+
+        .item-desc .code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .item-values {
+            text-align: right;
+            white-space: nowrap;
+        }
+
+        .item-values .total {
+            font-weight: 600;
+            color: var(--success);
+        }
+
+        /* Totals */
+        .totals-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+        }
+
+        .total-card {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 1.25rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .total-card label {
+            display: block;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+
+        .total-card .value {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .total-card.highlight {
+            background: linear-gradient(135deg, rgba(249, 115, 22, 0.2), rgba(234, 88, 12, 0.2));
+            border: 1px solid rgba(249, 115, 22, 0.3);
+        }
+
+        .total-card.highlight .value {
+            color: var(--primary);
+            font-size: 1.5rem;
+        }
+
+        /* Info Complementar */
+        .info-complementar {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 1rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        /* Footer */
+        footer {
+            padding: 2rem 0;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            margin-top: 2rem;
+        }
+
+        footer p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        footer a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 1rem;
+            }
+
+            .items-table {
+                display: block;
+                overflow-x: auto;
+            }
+
+            .nfe-header {
+                padding: 1.5rem;
+            }
+
+            .nfe-meta {
+                gap: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <nav>
+                <a href="#" class="logo">
+                    <div class="logo-icon">📄</div>
+                    <span>NFe Parser</span>
+                </a>
+                <div class="status-badge">
+                    <div class="status-dot"></div>
+                    API Online
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <div class="grid">
+                <!-- Upload Section -->
+                <aside class="upload-section">
+                    <div class="card">
+                        <div class="card-header">
+                            <span>📤</span>
+                            <h2>Carregar NF-e</h2>
+                        </div>
+                        <div class="card-body">
+                            <div class="upload-area" id="uploadArea">
+                                <div class="upload-icon">📁</div>
+                                <h3>Arraste o arquivo XML aqui</h3>
+                                <p>ou clique para selecionar</p>
+                                <input type="file" id="fileInput" accept=".xml">
+                            </div>
+
+                            <div class="file-info" id="fileInfo">
+                                <div class="filename" id="fileName"></div>
+                                <div class="filesize" id="fileSize"></div>
+                            </div>
+
+                            <button class="btn btn-primary" id="parseBtn" disabled>
+                                <span>⚡</span> Processar NF-e
+                            </button>
+
+                            <button class="btn btn-secondary" id="clearBtn" style="display: none;">
+                                <span>🗑️</span> Limpar
+                            </button>
+
+                            <div class="sample-section">
+                                <h4>Ou use um exemplo</h4>
+                                <button class="btn btn-secondary" id="loadSampleBtn">
+                                    <span>📋</span> Carregar XML de Exemplo
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </aside>
+
+                <!-- Results Section -->
+                <section class="results-section">
+                    <!-- Empty State -->
+                    <div class="card empty-state" id="emptyState">
+                        <div class="empty-state-icon">📄</div>
+                        <h3>Nenhuma NF-e carregada</h3>
+                        <p>Carregue um arquivo XML de NF-e para visualizar os dados</p>
+                    </div>
+
+                    <!-- Loading -->
+                    <div class="loading" id="loading">
+                        <div class="spinner"></div>
+                        <p>Processando NF-e...</p>
+                    </div>
+
+                    <!-- Error -->
+                    <div class="error-box" id="errorBox">
+                        <h4>⚠️ Erro ao processar</h4>
+                        <p id="errorMessage"></p>
+                    </div>
+
+                    <!-- NFe Container -->
+                    <div class="nfe-container" id="nfeContainer">
+                        <!-- Header -->
+                        <div class="nfe-header">
+                            <h1>📄 Nota Fiscal Eletronica</h1>
+                            <div class="chave" id="nfeChave"></div>
+                            <div class="nfe-meta">
+                                <div class="nfe-meta-item">
+                                    <label>Numero</label>
+                                    <span id="nfeNumero"></span>
+                                </div>
+                                <div class="nfe-meta-item">
+                                    <label>Serie</label>
+                                    <span id="nfeSerie"></span>
+                                </div>
+                                <div class="nfe-meta-item">
+                                    <label>Modelo</label>
+                                    <span id="nfeModelo"></span>
+                                </div>
+                                <div class="nfe-meta-item">
+                                    <label>Ambiente</label>
+                                    <span id="nfeAmbiente"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Identificacao -->
+                        <div class="section" id="sectionIde">
+                            <div class="section-header">
+                                <span>🔖</span>
+                                <h3>Identificacao</h3>
+                                <span class="section-toggle">▼</span>
+                            </div>
+                            <div class="section-content">
+                                <div class="field-group">
+                                    <div class="field">
+                                        <label>Natureza da Operacao</label>
+                                        <span id="ideNatureza"></span>
+                                    </div>
+                                    <div class="field">
+                                        <label>Tipo de Operacao</label>
+                                        <span id="ideTipo"></span>
+                                    </div>
+                                    <div class="field">
+                                        <label>Destino</label>
+                                        <span id="ideDestino"></span>
+                                    </div>
+                                    <div class="field">
+                                        <label>Finalidade</label>
+                                        <span id="ideFinalidade"></span>
+                                    </div>
+                                    <div class="field">
+                                        <label>Data de Emissao</label>
+                                        <span id="ideDataEmissao"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Emitente -->
+                        <div class="section" id="sectionEmit">
+                            <div class="section-header">
+                                <span>🏢</span>
+                                <h3>Emitente</h3>
+                                <span class="section-toggle">▼</span>
+                            </div>
+                            <div class="section-content">
+                                <div class="field-group">
+                                    <div class="field">
+                                        <label>CNPJ/CPF</label>
+                                        <span class="mono highlight" id="emitCnpj"></span>
+                                    </div>
+                                    <div class="field">
+                                        <label>Inscricao Estadual</label>
+                                        <span class="mono" id="emitIe"></span>
+                                    </div>
+                                </div>
+                                <div class="field-group">
+                                    <div class="field">
+                                        <label>Razao Social</label>
+                                        <span id="emitRazao"></span>
+                                    </div>
+                                    <div class="field">
+                                        <label>Nome Fantasia</label>
+                                        <span id="emitFantasia"></span>
+                                    </div>
+                                </div>
+                                <div class="field-group">
+                                    <div class="field">
+                                        <label>Endereco</label>
+                                        <span id="emitEndereco"></span>
+                                    </div>
+                                    <div class="field">
+                                        <label>Cidade/UF</label>
+                                        <span id="emitCidade"></span>
+                                    </div>
+                                    <div class="field">
+                                        <label>CEP</label>
+                                        <span class="mono" id="emitCep"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Destinatario -->
+                        <div class="section" id="sectionDest">
+                            <div class="section-header">
+                                <span>👤</span>
+                                <h3>Destinatario</h3>
+                                <span class="section-toggle">▼</span>
+                            </div>
+                            <div class="section-content">
+                                <div class="field-group">
+                                    <div class="field">
+                                        <label>CNPJ</label>
+                                        <span class="mono highlight" id="destCnpj"></span>
+                                    </div>
+                                    <div class="field">
+                                        <label>Indicador IE</label>
+                                        <span id="destIe"></span>
+                                    </div>
+                                </div>
+                                <div class="field-group">
+                                    <div class="field">
+                                        <label>Razao Social</label>
+                                        <span id="destRazao"></span>
+                                    </div>
+                                </div>
+                                <div class="field-group" id="destEnderecoGroup">
+                                    <div class="field">
+                                        <label>Endereco</label>
+                                        <span id="destEndereco"></span>
+                                    </div>
+                                    <div class="field">
+                                        <label>Cidade/UF</label>
+                                        <span id="destCidade"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Itens -->
+                        <div class="section" id="sectionItens">
+                            <div class="section-header">
+                                <span>📦</span>
+                                <h3>Itens (<span id="itensCount">0</span>)</h3>
+                                <span class="section-toggle">▼</span>
+                            </div>
+                            <div class="section-content" style="padding: 0;">
+                                <table class="items-table">
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Produto</th>
+                                            <th>NCM</th>
+                                            <th>CFOP</th>
+                                            <th>Qtd</th>
+                                            <th>Valores</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="itensBody">
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Totais -->
+                        <div class="section" id="sectionTotais">
+                            <div class="section-header">
+                                <span>💰</span>
+                                <h3>Totais</h3>
+                                <span class="section-toggle">▼</span>
+                            </div>
+                            <div class="section-content">
+                                <div class="totals-grid">
+                                    <div class="total-card">
+                                        <label>Valor Produtos</label>
+                                        <div class="value" id="totalProdutos"></div>
+                                    </div>
+                                    <div class="total-card">
+                                        <label>Frete</label>
+                                        <div class="value" id="totalFrete"></div>
+                                    </div>
+                                    <div class="total-card">
+                                        <label>Desconto</label>
+                                        <div class="value" id="totalDesconto"></div>
+                                    </div>
+                                    <div class="total-card">
+                                        <label>Outros</label>
+                                        <div class="value" id="totalOutros"></div>
+                                    </div>
+                                    <div class="total-card highlight">
+                                        <label>Total da Nota</label>
+                                        <div class="value" id="totalNota"></div>
+                                    </div>
+                                </div>
+                                <div class="totals-grid" style="margin-top: 1rem;">
+                                    <div class="total-card">
+                                        <label>Base ICMS</label>
+                                        <div class="value" id="totalBaseIcms"></div>
+                                    </div>
+                                    <div class="total-card">
+                                        <label>Valor ICMS</label>
+                                        <div class="value" id="totalIcms"></div>
+                                    </div>
+                                    <div class="total-card">
+                                        <label>PIS</label>
+                                        <div class="value" id="totalPis"></div>
+                                    </div>
+                                    <div class="total-card">
+                                        <label>COFINS</label>
+                                        <div class="value" id="totalCofins"></div>
+                                    </div>
+                                    <div class="total-card">
+                                        <label>Tributos Aprox.</label>
+                                        <div class="value" id="totalTributos"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Transporte -->
+                        <div class="section" id="sectionTransp">
+                            <div class="section-header">
+                                <span>🚚</span>
+                                <h3>Transporte</h3>
+                                <span class="section-toggle">▼</span>
+                            </div>
+                            <div class="section-content">
+                                <div class="field-group">
+                                    <div class="field">
+                                        <label>Modalidade do Frete</label>
+                                        <span id="transpModalidade"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Info Complementar -->
+                        <div class="section" id="sectionInfo" style="display: none;">
+                            <div class="section-header">
+                                <span>📝</span>
+                                <h3>Informacoes Complementares</h3>
+                                <span class="section-toggle">▼</span>
+                            </div>
+                            <div class="section-content">
+                                <div class="info-complementar" id="infoComplementar"></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>
+                Rust NFe API - Parser de Nota Fiscal Eletronica |
+                <a href="https://github.com/leonardo-matheus/Rust-Nfe-API" target="_blank">GitHub</a>
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        // Elements
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileName = document.getElementById('fileName');
+        const fileSize = document.getElementById('fileSize');
+        const parseBtn = document.getElementById('parseBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const loadSampleBtn = document.getElementById('loadSampleBtn');
+        const emptyState = document.getElementById('emptyState');
+        const loading = document.getElementById('loading');
+        const errorBox = document.getElementById('errorBox');
+        const errorMessage = document.getElementById('errorMessage');
+        const nfeContainer = document.getElementById('nfeContainer');
+
+        let currentXml = null;
+
+        // Format currency
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('pt-BR', {
+                style: 'currency',
+                currency: 'BRL'
+            }).format(value);
+        }
+
+        // Format number
+        function formatNumber(value, decimals = 4) {
+            return new Intl.NumberFormat('pt-BR', {
+                minimumFractionDigits: decimals,
+                maximumFractionDigits: decimals
+            }).format(value);
+        }
+
+        // Upload area events
+        uploadArea.addEventListener('click', () => fileInput.click());
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('drag-over');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('drag-over');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('drag-over');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        // Handle file
+        function handleFile(file) {
+            if (!file.name.endsWith('.xml')) {
+                alert('Por favor, selecione um arquivo XML');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                currentXml = e.target.result;
+                fileName.textContent = file.name;
+                fileSize.textContent = formatFileSize(file.size);
+                fileInfo.classList.add('visible');
+                parseBtn.disabled = false;
+                clearBtn.style.display = 'block';
+            };
+            reader.readAsText(file);
+        }
+
+        // Format file size
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' bytes';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        // Parse button
+        parseBtn.addEventListener('click', async () => {
+            if (!currentXml) return;
+
+            showLoading();
+
+            try {
+                const response = await fetch('/api/parse', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ xml: currentXml })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    displayNfe(result.data);
+                } else {
+                    showError(result.error);
+                }
+            } catch (error) {
+                showError('Erro de conexao com o servidor: ' + error.message);
+            }
+        });
+
+        // Clear button
+        clearBtn.addEventListener('click', () => {
+            currentXml = null;
+            fileInput.value = '';
+            fileInfo.classList.remove('visible');
+            parseBtn.disabled = true;
+            clearBtn.style.display = 'none';
+            hideAll();
+            emptyState.style.display = 'flex';
+        });
+
+        // Load sample
+        loadSampleBtn.addEventListener('click', () => {
+            currentXml = getSampleXml();
+            fileName.textContent = 'exemplo_nfe.xml';
+            fileSize.textContent = formatFileSize(currentXml.length);
+            fileInfo.classList.add('visible');
+            parseBtn.disabled = false;
+            clearBtn.style.display = 'block';
+        });
+
+        // Show/hide functions
+        function showLoading() {
+            hideAll();
+            loading.classList.add('visible');
+        }
+
+        function showError(message) {
+            hideAll();
+            errorMessage.textContent = message;
+            errorBox.classList.add('visible');
+        }
+
+        function hideAll() {
+            emptyState.style.display = 'none';
+            loading.classList.remove('visible');
+            errorBox.classList.remove('visible');
+            nfeContainer.classList.remove('visible');
+        }
+
+        // Display NFe
+        function displayNfe(data) {
+            hideAll();
+            nfeContainer.classList.add('visible');
+
+            // Header
+            document.getElementById('nfeChave').textContent = data.chave_acesso;
+            document.getElementById('nfeNumero').textContent = data.identificacao.numero;
+            document.getElementById('nfeSerie').textContent = data.identificacao.serie;
+            document.getElementById('nfeModelo').textContent = data.identificacao.modelo.replace('Nfe', 'NF-e (55)').replace('Nfce', 'NFC-e (65)');
+            document.getElementById('nfeAmbiente').textContent = data.identificacao.ambiente.replace('Producao', 'Producao').replace('Homologacao', 'Homologacao');
+
+            // Identificacao
+            document.getElementById('ideNatureza').textContent = data.identificacao.natureza_operacao;
+            document.getElementById('ideTipo').textContent = data.identificacao.tipo_operacao.replace('Saida', 'Saida').replace('Entrada', 'Entrada');
+            document.getElementById('ideDestino').textContent = formatDestino(data.identificacao.destino_operacao);
+            document.getElementById('ideFinalidade').textContent = formatFinalidade(data.identificacao.finalidade);
+            document.getElementById('ideDataEmissao').textContent = data.identificacao.data_emissao;
+
+            // Emitente
+            document.getElementById('emitCnpj').textContent = data.emitente.cnpj || data.emitente.cpf || '-';
+            document.getElementById('emitIe').textContent = data.emitente.inscricao_estadual || '-';
+            document.getElementById('emitRazao').textContent = data.emitente.razao_social || '-';
+            document.getElementById('emitFantasia').textContent = data.emitente.nome_fantasia || '-';
+            document.getElementById('emitEndereco').textContent = `${data.emitente.endereco.logradouro}, ${data.emitente.endereco.numero}${data.emitente.endereco.complemento ? ' - ' + data.emitente.endereco.complemento : ''} - ${data.emitente.endereco.bairro}`;
+            document.getElementById('emitCidade').textContent = `${data.emitente.endereco.municipio} - ${data.emitente.endereco.uf}`;
+            document.getElementById('emitCep').textContent = data.emitente.endereco.cep || '-';
+
+            // Destinatario
+            if (data.destinatario) {
+                document.getElementById('sectionDest').style.display = 'block';
+                document.getElementById('destCnpj').textContent = data.destinatario.cnpj || '-';
+                document.getElementById('destIe').textContent = formatIndicadorIe(data.destinatario.indicador_ie);
+                document.getElementById('destRazao').textContent = data.destinatario.razao_social || '-';
+
+                if (data.destinatario.endereco) {
+                    document.getElementById('destEnderecoGroup').style.display = 'grid';
+                    document.getElementById('destEndereco').textContent = `${data.destinatario.endereco.logradouro}, ${data.destinatario.endereco.numero}`;
+                    document.getElementById('destCidade').textContent = `${data.destinatario.endereco.municipio} - ${data.destinatario.endereco.uf}`;
+                } else {
+                    document.getElementById('destEnderecoGroup').style.display = 'none';
+                }
+            } else {
+                document.getElementById('sectionDest').style.display = 'none';
+            }
+
+            // Itens
+            document.getElementById('itensCount').textContent = data.itens.length;
+            const itensBody = document.getElementById('itensBody');
+            itensBody.innerHTML = '';
+
+            data.itens.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="item-number">${item.numero}</td>
+                    <td class="item-desc">
+                        <div>${item.descricao}</div>
+                        <div class="code">Cod: ${item.codigo}${item.gtin ? ' | GTIN: ' + item.gtin : ''}</div>
+                    </td>
+                    <td class="mono">${item.ncm}</td>
+                    <td class="mono">${item.cfop}</td>
+                    <td>${formatNumber(item.quantidade)} ${item.unidade}</td>
+                    <td class="item-values">
+                        <div>${formatNumber(item.quantidade, 2)} x ${formatCurrency(item.valor_unitario)}</div>
+                        ${item.valor_desconto ? `<div style="color: var(--error);">-${formatCurrency(item.valor_desconto)}</div>` : ''}
+                        <div class="total">${formatCurrency(item.valor_bruto)}</div>
+                    </td>
+                `;
+                itensBody.appendChild(tr);
+            });
+
+            // Totais
+            document.getElementById('totalProdutos').textContent = formatCurrency(data.totais.valor_produtos);
+            document.getElementById('totalFrete').textContent = formatCurrency(data.totais.valor_frete);
+            document.getElementById('totalDesconto').textContent = formatCurrency(data.totais.valor_desconto);
+            document.getElementById('totalOutros').textContent = formatCurrency(data.totais.valor_outros);
+            document.getElementById('totalNota').textContent = formatCurrency(data.totais.valor_total);
+            document.getElementById('totalBaseIcms').textContent = formatCurrency(data.totais.base_calculo_icms);
+            document.getElementById('totalIcms').textContent = formatCurrency(data.totais.valor_icms);
+            document.getElementById('totalPis').textContent = formatCurrency(data.totais.valor_pis);
+            document.getElementById('totalCofins').textContent = formatCurrency(data.totais.valor_cofins);
+            document.getElementById('totalTributos').textContent = formatCurrency(data.totais.valor_aproximado_tributos);
+
+            // Transporte
+            document.getElementById('transpModalidade').textContent = formatModalidade(data.transporte.modalidade);
+
+            // Info Complementar
+            if (data.informacao_complementar) {
+                document.getElementById('sectionInfo').style.display = 'block';
+                document.getElementById('infoComplementar').textContent = data.informacao_complementar;
+            } else {
+                document.getElementById('sectionInfo').style.display = 'none';
+            }
+        }
+
+        // Format helpers
+        function formatDestino(destino) {
+            const map = {
+                'Interna': 'Interna (1)',
+                'Interestadual': 'Interestadual (2)',
+                'ComExterior': 'Com Exterior (3)'
+            };
+            return map[destino] || destino;
+        }
+
+        function formatFinalidade(finalidade) {
+            const map = {
+                'Normal': 'Normal (1)',
+                'Complementar': 'Complementar (2)',
+                'Ajuste': 'Ajuste (3)',
+                'Devolucao': 'Devolucao (4)'
+            };
+            return map[finalidade] || finalidade;
+        }
+
+        function formatIndicadorIe(indicador) {
+            const map = {
+                'ContribuinteIcms': 'Contribuinte ICMS (1)',
+                'Isento': 'Isento (2)',
+                'NaoContribuinte': 'Nao Contribuinte (9)'
+            };
+            return map[indicador] || indicador;
+        }
+
+        function formatModalidade(modalidade) {
+            const map = {
+                'ContratacaoPorContaDoRemetente': 'CIF - Por conta do Remetente (0)',
+                'ContratacaoPorContaDoDestinatario': 'FOB - Por conta do Destinatario (1)',
+                'ContratacaoPorContaDeTerceiros': 'Por conta de Terceiros (2)',
+                'TransportePorContaDoRemetente': 'Proprio por conta do Remetente (3)',
+                'TransportePorContaDoDestinatario': 'Proprio por conta do Destinatario (4)',
+                'SemTransporte': 'Sem Transporte (9)'
+            };
+            return map[modalidade] || modalidade;
+        }
+
+        // Section toggle
+        document.querySelectorAll('.section-header').forEach(header => {
+            header.addEventListener('click', () => {
+                header.parentElement.classList.toggle('collapsed');
+            });
+        });
+
+        // Sample XML
+        function getSampleXml() {
+            return `<?xml version="1.0" encoding="UTF-8"?>
+<NFe>
+    <infNFe versao="4.00" Id="NFe35240112345678901234550010000000011000000015">
+        <ide>
+            <cUF>35</cUF>
+            <cNF>00000001</cNF>
+            <natOp>VENDA DE MERCADORIA</natOp>
+            <mod>55</mod>
+            <serie>1</serie>
+            <nNF>1</nNF>
+            <dhEmi>2024-01-15T10:30:00-03:00</dhEmi>
+            <tpNF>1</tpNF>
+            <idDest>1</idDest>
+            <cMunFG>3550308</cMunFG>
+            <tpImp>1</tpImp>
+            <tpEmis>1</tpEmis>
+            <cDV>5</cDV>
+            <tpAmb>2</tpAmb>
+            <finNFe>1</finNFe>
+            <indFinal>1</indFinal>
+            <indPres>1</indPres>
+            <procEmi>0</procEmi>
+            <verProc>1.0.0</verProc>
+        </ide>
+        <emit>
+            <CNPJ>12345678901234</CNPJ>
+            <xNome>EMPRESA EXEMPLO LTDA</xNome>
+            <xFant>EXEMPLO</xFant>
+            <enderEmit>
+                <xLgr>Rua das Flores</xLgr>
+                <nro>123</nro>
+                <xCpl>Sala 1</xCpl>
+                <xBairro>Centro</xBairro>
+                <cMun>3550308</cMun>
+                <xMun>Sao Paulo</xMun>
+                <UF>SP</UF>
+                <CEP>01310100</CEP>
+                <cPais>1058</cPais>
+                <xPais>Brasil</xPais>
+                <fone>1133334444</fone>
+            </enderEmit>
+            <IE>123456789012</IE>
+            <CRT>3</CRT>
+        </emit>
+        <dest>
+            <CNPJ>98765432109876</CNPJ>
+            <xNome>CLIENTE EXEMPLO S/A</xNome>
+            <enderDest>
+                <xLgr>Avenida Brasil</xLgr>
+                <nro>456</nro>
+                <xBairro>Jardins</xBairro>
+                <cMun>3550308</cMun>
+                <xMun>Sao Paulo</xMun>
+                <UF>SP</UF>
+                <CEP>04567890</CEP>
+                <cPais>1058</cPais>
+                <xPais>Brasil</xPais>
+            </enderDest>
+            <indIEDest>1</indIEDest>
+            <IE>987654321098</IE>
+        </dest>
+        <det nItem="1">
+            <prod>
+                <cProd>PROD001</cProd>
+                <cEAN>7891234567890</cEAN>
+                <xProd>Notebook Dell Inspiron 15</xProd>
+                <NCM>84713012</NCM>
+                <CFOP>5102</CFOP>
+                <uCom>UN</uCom>
+                <qCom>2.0000</qCom>
+                <vUnCom>3500.00</vUnCom>
+                <vProd>7000.00</vProd>
+                <cEANTrib>7891234567890</cEANTrib>
+                <uTrib>UN</uTrib>
+                <qTrib>2.0000</qTrib>
+                <vUnTrib>3500.00</vUnTrib>
+                <indTot>1</indTot>
+            </prod>
+            <imposto>
+                <ICMS>
+                    <ICMS00>
+                        <orig>0</orig>
+                        <CST>00</CST>
+                        <modBC>0</modBC>
+                        <vBC>7000.00</vBC>
+                        <pICMS>18.00</pICMS>
+                        <vICMS>1260.00</vICMS>
+                    </ICMS00>
+                </ICMS>
+                <PIS>
+                    <PISAliq>
+                        <CST>01</CST>
+                        <vBC>7000.00</vBC>
+                        <pPIS>1.65</pPIS>
+                        <vPIS>115.50</vPIS>
+                    </PISAliq>
+                </PIS>
+                <COFINS>
+                    <COFINSAliq>
+                        <CST>01</CST>
+                        <vBC>7000.00</vBC>
+                        <pCOFINS>7.60</pCOFINS>
+                        <vCOFINS>532.00</vCOFINS>
+                    </COFINSAliq>
+                </COFINS>
+            </imposto>
+        </det>
+        <det nItem="2">
+            <prod>
+                <cProd>PROD002</cProd>
+                <cEAN>SEM GTIN</cEAN>
+                <xProd>Mouse Wireless Logitech MX Master 3</xProd>
+                <NCM>84716053</NCM>
+                <CFOP>5102</CFOP>
+                <uCom>UN</uCom>
+                <qCom>5.0000</qCom>
+                <vUnCom>450.00</vUnCom>
+                <vProd>2250.00</vProd>
+                <vDesc>50.00</vDesc>
+                <cEANTrib>SEM GTIN</cEANTrib>
+                <uTrib>UN</uTrib>
+                <qTrib>5.0000</qTrib>
+                <vUnTrib>450.00</vUnTrib>
+                <indTot>1</indTot>
+            </prod>
+            <imposto>
+                <ICMS>
+                    <ICMS00>
+                        <orig>0</orig>
+                        <CST>00</CST>
+                        <modBC>0</modBC>
+                        <vBC>2200.00</vBC>
+                        <pICMS>18.00</pICMS>
+                        <vICMS>396.00</vICMS>
+                    </ICMS00>
+                </ICMS>
+                <PIS>
+                    <PISAliq>
+                        <CST>01</CST>
+                        <vBC>2200.00</vBC>
+                        <pPIS>1.65</pPIS>
+                        <vPIS>36.30</vPIS>
+                    </PISAliq>
+                </PIS>
+                <COFINS>
+                    <COFINSAliq>
+                        <CST>01</CST>
+                        <vBC>2200.00</vBC>
+                        <pCOFINS>7.60</pCOFINS>
+                        <vCOFINS>167.20</vCOFINS>
+                    </COFINSAliq>
+                </COFINS>
+            </imposto>
+        </det>
+        <total>
+            <ICMSTot>
+                <vBC>9200.00</vBC>
+                <vICMS>1656.00</vICMS>
+                <vICMSDeson>0.00</vICMSDeson>
+                <vFCPUFDest>0.00</vFCPUFDest>
+                <vICMSUFDest>0.00</vICMSUFDest>
+                <vICMSUFRemet>0.00</vICMSUFRemet>
+                <vFCP>0.00</vFCP>
+                <vBCST>0.00</vBCST>
+                <vST>0.00</vST>
+                <vFCPST>0.00</vFCPST>
+                <vFCPSTRet>0.00</vFCPSTRet>
+                <vProd>9250.00</vProd>
+                <vFrete>150.00</vFrete>
+                <vSeg>0.00</vSeg>
+                <vDesc>50.00</vDesc>
+                <vII>0.00</vII>
+                <vIPI>0.00</vIPI>
+                <vIPIDevol>0.00</vIPIDevol>
+                <vPIS>151.80</vPIS>
+                <vCOFINS>699.20</vCOFINS>
+                <vOutro>0.00</vOutro>
+                <vNF>9350.00</vNF>
+                <vTotTrib>2507.00</vTotTrib>
+            </ICMSTot>
+        </total>
+        <transp>
+            <modFrete>0</modFrete>
+        </transp>
+        <infAdic>
+            <infCpl>Venda realizada pela loja virtual. Garantia de 12 meses. SAC: 0800-123-4567. Em caso de duvidas, entre em contato pelo email: contato@exemplo.com.br</infCpl>
+        </infAdic>
+    </infNFe>
+</NFe>`;
+        }
+    </script>
+</body>
+</html>

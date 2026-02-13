@@ -2,9 +2,15 @@
 name = "nfe"
 version = "0.1.0"
 edition = "2021"
-categories = ["data-structures", "parser-implementations"]
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+authors = ["Leonardo Matheus"]
+description = "Biblioteca Rust para parsing e serialização de Nota Fiscal Eletrônica (NF-e) brasileira - Layout 4.00 SEFAZ"
+license = "MIT"
+repository = "https://github.com/leonardo-matheus/Rust-Nfe-API"
+homepage = "https://github.com/leonardo-matheus/Rust-Nfe-API"
+documentation = "https://docs.rs/nfe"
+readme = "../README.md"
+keywords = ["nfe", "nfce", "sefaz", "xml", "brazil"]
+categories = ["data-structures", "parser-implementations", "encoding"]
 
 [dependencies]
 chrono = { version = "0.4.19", features = ["serde"] }
