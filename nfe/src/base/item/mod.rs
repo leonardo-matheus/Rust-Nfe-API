@@ -21,7 +21,7 @@ pub use produto::*;
 #[serde(rename = "det")]
 pub struct Item {
     /// Número sequencial do item na NF-e
-    #[serde(rename = "@nItem")]
+    #[serde(rename = "nItem")]
     pub numero: u8,
     /// Dados do produto ou serviço
     #[serde(rename = "prod")]

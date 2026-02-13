@@ -306,6 +306,7 @@ struct IdeContainer {
     #[serde(rename = "$unflatten=dhSaiEnt")]
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(serialize_with = "serialize_horario_op")]
+    #[serde(default)]
     pub o_horario: Option<DateTime<Utc>>,
     #[serde(rename = "$unflatten=tpNF")]
     pub o_tipo: TipoOperacao,
@@ -319,6 +320,7 @@ struct IdeContainer {
     pub o_presenca: TipoPresencaComprador,
     #[serde(rename = "$unflatten=indIntermed")]
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub o_intermediador: Option<TipoIntermediador>,
 }
 
