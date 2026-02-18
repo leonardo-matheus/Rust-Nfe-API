@@ -1,6 +1,6 @@
 [package]
 name = "nfe-parser"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 authors = ["Leonardo Matheus <contato@leonardomdev.me>"]
 description = "Biblioteca Rust de alto desempenho para parsing e serialização de Nota Fiscal Eletrônica (NF-e) brasileira - Layout 4.00 SEFAZ"

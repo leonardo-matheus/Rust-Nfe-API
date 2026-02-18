@@ -348,17 +348,10 @@ impl NfeBuilder {
             },
             itens: itens_nfe,
             totais: Totalizacao {
-                valor_base_calculo: 0.0,
-                valor_icms: 0.0,
                 valor_produtos: total_produtos,
-                valor_frete: 0.0,
-                valor_seguro: 0.0,
                 valor_desconto: total_desconto,
-                valor_outros: 0.0,
-                valor_pis: 0.0,
-                valor_cofins: 0.0,
                 valor_total,
-                valor_aproximado_tributos: 0.0,
+                ..Default::default()
             },
             transporte: Transporte {
                 modalidade: self.modalidade_frete.unwrap_or(ModalidadeFrete::SemTransporte),
