@@ -1,6 +1,6 @@
 [package]
 name = "nfe-web"
-version = "0.3.0"
+version = "1.0.0"
 edition = "2021"
 authors = ["Leonardo Matheus <contato@leonardomdev.me>"]
 description = "API REST/GraphQL de alto desempenho para NF-e com integracao SEFAZ, geracao de DANFE e suporte a certificado digital"
@@ -23,7 +23,7 @@ path = "src/main.rs"
 
 [dependencies]
 # Biblioteca NFe local (para publicacao, usa versao do crates.io)
-nfe-parser = { path = "../nfe", version = "0.3.0" }
+nfe-parser = { path = "../nfe", version = "1.0.0" }
 
 # Web framework
 actix-web = "4"

@@ -33,13 +33,16 @@ use std::io::Read;
 use std::str::FromStr;
 
 // Submódulos que compõem a estrutura da NF-e
-pub mod dest;      // Destinatário (comprador/cliente)
-pub mod emit;      // Emitente (vendedor/empresa)
-pub mod endereco;  // Endereço (usado por emit e dest)
-mod error;         // Tipos de erro da biblioteca
-pub mod ide;       // Identificação da nota fiscal
-pub mod item;      // Itens/produtos da nota
-pub mod totais;    // Totalização de valores
+pub mod dest;       // Destinatário (comprador/cliente)
+pub mod emit;       // Emitente (vendedor/empresa)
+pub mod endereco;   // Endereço (usado por emit e dest)
+mod error;          // Tipos de erro da biblioteca
+pub mod ide;        // Identificação da nota fiscal
+pub mod item;       // Itens/produtos da nota
+pub mod municipios; // Tabela de municípios IBGE e configurações fiscais
+pub mod nfce;       // NFC-e - Nota Fiscal de Consumidor Eletrônica
+pub mod nfse;       // NFS-e - Nota Fiscal de Serviços Eletrônica
+pub mod totais;     // Totalização de valores
 pub mod transporte; // Dados de transporte/frete
 
 use dest::Destinatario;

@@ -7,7 +7,7 @@ use super::Error;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 
-mod imposto;
+pub mod imposto;
 mod produto;
 
 pub use imposto::*;
